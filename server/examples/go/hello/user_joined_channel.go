@@ -5,7 +5,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/examples"
 )
 
-func (h *HelloApp) UserJoinedChannel(call *api.Call) {
+func (h *HelloApp) UserJoinedChannel(call *api.Call) *api.CallResponse {
 	go func() {
 		bot := examples.AsBot(call.Context)
 
@@ -14,4 +14,5 @@ func (h *HelloApp) UserJoinedChannel(call *api.Call) {
 			h.API.Mattermost.Log.Error("error sending survey", "err", err.Error())
 		}
 	}()
+	return api.NewCallResponse("ok", nil, nil)
 }

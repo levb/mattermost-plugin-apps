@@ -11,7 +11,15 @@ import (
 	"github.com/mattermost/mattermost-server/v5/model"
 )
 
-func (h *HelloApp) Install(appID api.AppID, channelDisplayName string, c *api.Call) (md.MD, error) {
+func (h *HelloApp) Install(appID api.AppID, channelDisplayName string, c *api.Call) *api.CallResponse {
+	if c.Type != api.CallTypeSubmit {
+		return api.NewErrorCallResponse(errors.New("not supported"))
+	}
+	txt, err := h.install(appID, channelDisplayName, c)
+	return api.NewCallResponse(txt, nil, err)
+}
+
+func (h *HelloApp) install(appID api.AppID, channelDisplayName string, c *api.Call) (md.MD, error) {
 	if c.Type != api.CallTypeSubmit {
 		return "", errors.New("not supported")
 	}

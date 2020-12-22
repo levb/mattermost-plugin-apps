@@ -33,6 +33,8 @@ type BuildConfig struct {
 
 // Config represents the the metadata handed to all request runners (command,
 // http).
+//
+// Config should be abbreviated as `conf`.
 type Config struct {
 	*StoredConfig
 	*BuildConfig
@@ -44,6 +46,7 @@ type Config struct {
 	PluginURLPath          string
 }
 
+// Configurator should be abbreviated as `cfg`
 type Configurator interface {
 	GetConfig() Config
 	GetMattermostConfig() *model.Config

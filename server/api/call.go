@@ -28,8 +28,7 @@ const (
 // consent, the appropriate OAuth flow is launched, and the Call is executed
 // upon its success.
 //
-// TODO: what if a call needs a token and it was not provided? Return a call to
-// itself with Expand.
+// Call should be abbreviated as `call`.
 type Call struct {
 	URL        string            `json:"url,omitempty"`
 	Type       CallType          `json:"type,omitempty"`
@@ -65,6 +64,7 @@ const (
 	CallResponseTypeNavigate = CallResponseType("navigate")
 )
 
+// CallResponse should be abbreviated as `cr`.
 type CallResponse struct {
 	Type CallResponseType `json:"type,omitempty"`
 
@@ -84,6 +84,17 @@ type CallResponse struct {
 
 	// Used in CallResponseTypeForm
 	Form *Form `json:"form,omitempty"`
+}
+
+func NewCallResponse(txt md.MD, data interface{}, err error) *CallResponse {
+	if err != nil {
+		return NewErrorCallResponse(err)
+	}
+	return &CallResponse{
+		Type:     CallResponseTypeOK,
+		Markdown: txt,
+		Data:     data,
+	}
 }
 
 func NewErrorCallResponse(err error) *CallResponse {

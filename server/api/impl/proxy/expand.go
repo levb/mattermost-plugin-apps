@@ -1,67 +1,96 @@
 package proxy
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
-	pluginapi "github.com/mattermost/mattermost-plugin-api"
+	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-server/v5/model"
 )
 
 type expander struct {
-	// Context to expand (can be expanded multiple times on the same expander)
+	// Context to expand (can be expanded multiple times on the same expander,
+	// for different Apps).
 	*api.Context
 
-	mm           *pluginapi.Client
-	conf         api.Configurator
-	store        api.Store
 	sessionToken api.SessionToken
 }
 
-func (p *Proxy) newExpander(cc *api.Context, mm *pluginapi.Client, conf api.Configurator, store api.Store, debugSessionToken api.SessionToken) *expander {
+func (p *Proxy) newExpander(cc *api.Context, sessionToken api.SessionToken) *expander {
 	e := &expander{
 		Context:      cc,
-		mm:           mm,
-		conf:         conf,
-		store:        store,
-		sessionToken: debugSessionToken,
+		sessionToken: sessionToken,
 	}
 	return e
 }
 
-func (e *expander) ExpandForApp(app *api.App, expand *api.Expand) (*api.Context, error) {
-	clone := *e.Context
-	clone.AppID = app.Manifest.AppID
+func (p *Proxy) ExpandForApp(e *expander, call *api.Call, app *api.App) (*api.Context, string, error) {
+	expand := call.Expand
+	cc := *e.Context
+	fmt.Printf("<><> ExpandForApp 0: %v\n", call.URL)
+	fmt.Printf("<><> ExpandForApp 1: %+v\n", expand)
+	fmt.Printf("<><> ExpandForApp 2: %+v\n", cc)
+	if expand == nil {
+		expand = &api.Expand{}
+	}
+
+	cc.App = nil
+	cc.BotUserID = app.BotUserID
 
 	if e.MattermostSiteURL == "" {
-		mmconf := e.conf.GetMattermostConfig()
+		mmconf := p.conf.GetMattermostConfig()
 		if mmconf.ServiceSettings.SiteURL != nil {
 			e.MattermostSiteURL = *mmconf.ServiceSettings.SiteURL
 		}
 	}
+	cc.MattermostSiteURL = e.MattermostSiteURL
 
-	clone.MattermostSiteURL = e.MattermostSiteURL
-	clone.BotUserID = app.BotUserID
-	if expand == nil {
-		clone.ExpandedContext = api.ExpandedContext{
-			BotAccessToken: app.BotAccessToken,
-		}
-		return &clone, nil
+	if app.GrantedPermissions.Contains(api.PermissionActAsBot) {
+		cc.BotAccessToken = app.BotAccessToken
 	}
 
-	if expand.ActingUser != "" && e.ActingUserID != "" && e.ActingUser == nil {
-		actingUser, err := e.mm.User.Get(e.ActingUserID)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to expand acting user %s", e.ActingUserID)
+	// TODO: do we need another way of obtaining an admin token? Should it be
+	// out of expand?
+	if expand.AdminAccessToken != "" {
+		cc.AdminAccessToken = string(e.sessionToken)
+	}
+
+	if e.ActingUserID != "" {
+		if app.GrantedPermissions.Contains(api.PermissionActAsUser) {
+			oauth := p.newMattermostOAuthenticator(app)
+			t, err := oauth.GetToken(cc.ActingUserID)
+			if err != nil {
+				return nil, "", err
+			}
+			if t != nil {
+				cc.ActingUserIsConnected = true
+			}
+
+			if expand.ActingUserAccessToken != "" {
+				if t == nil {
+					// If the Call requires OAuth token and we don't have one,
+					// start OAuth2.
+					connectURL, err := p.startMattermostOAuthConnect(oauth, cc.ActingUserID, app, call)
+					return nil, connectURL, err
+				}
+				call.Context.ActingUserAccessToken = t.AccessToken
+			}
 		}
-		e.ActingUser = actingUser
+
+		if expand.ActingUser != "" && e.ActingUser == nil {
+			actingUser, err := p.mm.User.Get(e.ActingUserID)
+			if err != nil {
+				return nil, "", errors.Wrapf(err, "failed to expand acting user %s", e.ActingUserID)
+			}
+			e.ActingUser = actingUser
+		}
 	}
 
 	if expand.Channel != "" && e.ChannelID != "" && e.Channel == nil {
-		ch, err := e.mm.Channel.Get(e.ChannelID)
+		ch, err := p.mm.Channel.Get(e.ChannelID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to expand channel %s", e.ChannelID)
+			return nil, "", errors.Wrapf(err, "failed to expand channel %s", e.ChannelID)
 		}
 		e.Channel = ch
 	}
@@ -69,38 +98,38 @@ func (e *expander) ExpandForApp(app *api.App, expand *api.Expand) (*api.Context,
 	// TODO expand Mentioned
 
 	if expand.Post != "" && e.PostID != "" && e.Post == nil {
-		post, err := e.mm.Post.GetPost(e.PostID)
+		post, err := p.mm.Post.GetPost(e.PostID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to expand post %s", e.PostID)
+			return nil, "", errors.Wrapf(err, "failed to expand post %s", e.PostID)
 		}
 		e.Post = post
 	}
 
 	if expand.RootPost != "" && e.RootPostID != "" && e.RootPost == nil {
-		post, err := e.mm.Post.GetPost(e.RootPostID)
+		post, err := p.mm.Post.GetPost(e.RootPostID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to expand root post %s", e.RootPostID)
+			return nil, "", errors.Wrapf(err, "failed to expand root post %s", e.RootPostID)
 		}
 		e.RootPost = post
 	}
 
 	if expand.Team != "" && e.TeamID != "" && e.Team == nil {
-		team, err := e.mm.Team.Get(e.TeamID)
+		team, err := p.mm.Team.Get(e.TeamID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to expand team %s", e.TeamID)
+			return nil, "", errors.Wrapf(err, "failed to expand team %s", e.TeamID)
 		}
 		e.Team = team
 	}
 
 	if expand.User != "" && e.UserID != "" && e.User == nil {
-		user, err := e.mm.User.Get(e.UserID)
+		user, err := p.mm.User.Get(e.UserID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to expand user %s", e.UserID)
+			return nil, "", errors.Wrapf(err, "failed to expand user %s", e.UserID)
 		}
 		e.User = user
 	}
 
-	clone.ExpandedContext = api.ExpandedContext{
+	cc.ExpandedContext = api.ExpandedContext{
 		BotAccessToken: app.BotAccessToken,
 
 		ActingUser: stripUser(e.ActingUser, expand.ActingUser),
@@ -113,16 +142,7 @@ func (e *expander) ExpandForApp(app *api.App, expand *api.Expand) (*api.Context,
 		// TODO Mentioned
 	}
 
-	// TODO: use the appropriate user's OAuth2 token once re-implemented, for
-	// now pass in the session token to make things work.
-	if expand.AdminAccessToken != "" {
-		clone.ExpandedContext.AdminAccessToken = string(e.sessionToken)
-	}
-	if expand.ActingUserAccessToken != "" {
-		clone.ExpandedContext.ActingUserAccessToken = string(e.sessionToken)
-	}
-
-	return &clone, nil
+	return &cc, "", nil
 }
 
 func stripUser(user *model.User, level api.ExpandLevel) *model.User {

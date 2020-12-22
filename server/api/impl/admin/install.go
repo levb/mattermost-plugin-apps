@@ -12,6 +12,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
+	"github.com/mattermost/mattermost-plugin-apps/server/utils/oauther"
 	"github.com/mattermost/mattermost-server/v5/model"
 )
 
@@ -83,7 +84,8 @@ func (adm *Admin) ensureOAuthApp(manifest *api.Manifest, noUserConsent bool, act
 		}
 	}
 
-	oauth2CallbackURL := adm.conf.GetConfig().PluginURL + api.AppsPath + "/" + string(manifest.AppID) + api.PathOAuth2Complete
+	oauth2CallbackURL := fmt.Sprintf("%s%s/%s%s",
+		adm.conf.GetConfig().PluginURL, api.OAuth2Path, string(manifest.AppID), oauther.CompletePath)
 
 	// For the POC this should work, but for the final product I would opt for a RPC method to register the App
 	oauthApp, response := client.CreateOAuthApp(&model.OAuthApp{
@@ -102,7 +104,7 @@ func (adm *Admin) ensureOAuthApp(manifest *api.Manifest, noUserConsent bool, act
 	}
 
 	_ = adm.mm.Post.DM(app.BotUserID, actingUserID, &model.Post{
-		Message: fmt.Sprintf("Created OAuth2 App (`%s`).", oauthApp.Id),
+		Message: fmt.Sprintf("Created OAuth2 App (`%s`). Callback URL: %s", oauthApp.Id, oauth2CallbackURL),
 	})
 
 	return oauthApp, nil

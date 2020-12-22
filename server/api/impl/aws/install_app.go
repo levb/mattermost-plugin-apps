@@ -9,14 +9,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/mattermost/mattermost-plugin-apps/server/utils/httputils"
 	"github.com/pkg/errors"
 )
 
+const MaxFileSize = 100 * (1 << 20)
 const lambdaFunctionFileNameMaxSize = 64
 
 type function struct {
@@ -71,9 +72,7 @@ func (c *Client) InstallApp(releaseURL string) error {
 			if err != nil {
 				return errors.Wrap(err, "can't open manifest.json file")
 			}
-			defer manifestFile.Close()
-
-			data, err := ioutil.ReadAll(manifestFile)
+			data, err := httputils.ReadAndClose(manifestFile)
 			if err != nil {
 				return errors.Wrap(err, "can't read manifest.json file")
 			}
@@ -128,7 +127,7 @@ func downloadFile(url string) ([]byte, error) {
 		return nil, errors.Wrapf(err, "can't download file %s - status %d", url, resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := httputils.LimitReadAll(resp.Body, MaxFileSize)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't read file")
 	}
@@ -172,7 +171,7 @@ func (c *Client) createFunction(zipFile io.Reader, function, handler, runtime, r
 		return errors.Errorf("you must supply a zip file, function name, handler, ARN and runtime - %p %s %s %s %s", zipFile, function, handler, resource, runtime)
 	}
 
-	contents, err := ioutil.ReadAll(zipFile)
+	contents, err := httputils.LimitReadAll(zipFile, MaxFileSize)
 	if err != nil {
 		return errors.Wrap(err, "could not read zip file")
 	}
