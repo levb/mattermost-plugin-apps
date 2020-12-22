@@ -52,7 +52,8 @@ func (p *Proxy) ExpandForApp(e *expander, call *api.Call, app *api.App) (*api.Co
 
 	// TODO: do we need another way of obtaining an admin token? Should it be
 	// out of expand?
-	if expand.AdminAccessToken != "" {
+	// TODO: Implement collecting user consent for the admin token, in-line?
+	if expand.AdminAccessToken.Any() {
 		cc.AdminAccessToken = string(e.sessionToken)
 	}
 
@@ -67,14 +68,15 @@ func (p *Proxy) ExpandForApp(e *expander, call *api.Call, app *api.App) (*api.Co
 				cc.ActingUserIsConnected = true
 			}
 
-			if expand.ActingUserAccessToken != "" {
-				if t == nil {
+			if expand.ActingUserAccessToken.Any() {
+				if t != nil {
+					call.Context.ActingUserAccessToken = t.AccessToken
+				} else if expand.ActingUserAccessToken.IsRequired() {
 					// If the Call requires OAuth token and we don't have one,
 					// start OAuth2.
 					connectURL, err := p.startMattermostOAuthConnect(oauth, cc.ActingUserID, app, call)
 					return nil, connectURL, err
 				}
-				call.Context.ActingUserAccessToken = t.AccessToken
 			}
 		}
 
