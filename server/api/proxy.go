@@ -7,9 +7,11 @@ import "net/http"
 
 type Proxy interface {
 	GetBindings(*Context) ([]*Binding, error)
-	Call(SessionToken, *Call) *CallResponse
+	Call(SessionToken, *Call) (*Call, *CallResponse)
 	Notify(cc *Context, subj Subject) error
-	HandleOAuth(w http.ResponseWriter, req *http.Request)
+
+	StartOAuthConnect(userID string, appID AppID, callOnComplete *Call) (connectURL string, err error)
+	HandleOAuth(http.ResponseWriter, *http.Request)
 
 	ProvisionBuiltIn(AppID, Upstream)
 }

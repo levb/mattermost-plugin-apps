@@ -24,7 +24,7 @@ BUILD_HASH_SHORT = $(shell git rev-parse --short HEAD)
 LDFLAGS += -X "main.BuildDate=$(BUILD_DATE)"
 LDFLAGS += -X "main.BuildHash=$(BUILD_HASH)"
 LDFLAGS += -X "main.BuildHashShort=$(BUILD_HASH_SHORT)"
-GOBUILD = $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)'
+GOBUILD = $(GO) build $(GOFLAGS) $(GO_BUILD_FLAGS) -ldflags '$(LDFLAGS)'
 GOTEST = $(GO) test $(GOFLAGS) $(GO_TEST_FLAGS) -ldflags '$(LDFLAGS)'
 
 # You can include assets this directory into the bundle. This can be e.g. used to include profile pictures.
@@ -95,15 +95,15 @@ server:
 ifneq ($(HAS_SERVER),)
 	mkdir -p server/dist;
 ifeq ($(MM_DEBUG),)
-	cd server && env GOOS=linux GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -o dist/plugin-linux-amd64;
-	cd server && env GOOS=darwin GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -o dist/plugin-darwin-amd64;
-	cd server && env GOOS=windows GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -o dist/plugin-windows-amd64.exe;
+	cd server && env GOOS=linux GOARCH=amd64 $(GOBUILD) -o dist/plugin-linux-amd64;
+	cd server && env GOOS=darwin GOARCH=amd64 $(GOBUILD) -o dist/plugin-darwin-amd64;
+	cd server && env GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/plugin-windows-amd64.exe;
 else
 	$(info DEBUG mode is on; to disable, unset MM_DEBUG)
 
-	cd server && env GOOS=darwin GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -gcflags "all=-N -l" -o dist/plugin-darwin-amd64;
-	cd server && env GOOS=linux GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -gcflags "all=-N -l" -o dist/plugin-linux-amd64;
-	cd server && env GOOS=windows GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -gcflags "all=-N -l" -o dist/plugin-windows-amd64.exe;
+	cd server && env GOOS=darwin GOARCH=amd64 $(GOBUILD) -gcflags "all=-N -l" -o dist/plugin-darwin-amd64;
+	cd server && env GOOS=linux GOARCH=amd64 $(GOBUILD) -gcflags "all=-N -l" -o dist/plugin-linux-amd64;
+	cd server && env GOOS=windows GOARCH=amd64 $(GOBUILD) -gcflags "all=-N -l" -o dist/plugin-windows-amd64.exe;
 endif
 endif
 
@@ -216,7 +216,7 @@ detach: setup-attach
 .PHONY: test
 test: webapp/node_modules
 ifneq ($(HAS_SERVER),)
-	$(GO) test -v $(GO_TEST_FLAGS) ./server/...
+	$(GOTEST) ./server/...
 endif
 ifneq ($(HAS_WEBAPP),)
 	cd webapp && $(NPM) run test;
@@ -226,7 +226,7 @@ endif
 .PHONY: coverage
 coverage: webapp/node_modules
 ifneq ($(HAS_SERVER),)
-	$(GO) test $(GO_TEST_FLAGS) -coverprofile=server/coverage.txt ./server/...
+	$(GOTEST) -coverprofile=server/coverage.txt ./server/...
 	$(GO) tool cover -html=server/coverage.txt
 endif
 

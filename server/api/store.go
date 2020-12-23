@@ -4,6 +4,7 @@
 package api
 
 type Store interface {
+	AddBuiltinApp(app *App)
 	DeleteSub(*Subscription) error
 	LoadApp(appID AppID) (*App, error)
 	LoadSubs(subject Subject, teamID, channelID string) ([]*Subscription, error)

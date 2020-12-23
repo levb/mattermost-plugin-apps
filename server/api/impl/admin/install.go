@@ -55,12 +55,12 @@ func (adm *Admin) InstallApp(cc *api.Context, sessionToken api.SessionToken, in 
 	}
 	install.Context = cc
 
-	resp := adm.proxy.Call(sessionToken, install)
-	if resp.Type == api.CallResponseTypeError {
-		return nil, "", errors.Wrap(resp, "install failed")
+	_, cr := adm.proxy.Call(sessionToken, install)
+	if cr.Type == api.CallResponseTypeError {
+		return nil, "", errors.Wrap(cr, "install failed")
 	}
 
-	return app, resp.Markdown, nil
+	return app, cr.Markdown, nil
 }
 
 func (adm *Admin) ensureOAuthApp(manifest *api.Manifest, noUserConsent bool, actingUserID, sessionToken string) (*model.OAuthApp, error) {

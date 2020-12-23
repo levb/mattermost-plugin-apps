@@ -114,25 +114,25 @@ func (cr *CallResponse) Error() string {
 }
 
 func UnmarshalCallFromData(data []byte) (*Call, error) {
-	c := Call{}
-	err := json.Unmarshal(data, &c)
+	call := Call{}
+	err := json.Unmarshal(data, &call)
 	if err != nil {
 		return nil, err
 	}
-	return &c, nil
+	return &call, nil
 }
 
 func UnmarshalCallFromReader(in io.Reader) (*Call, error) {
-	c := Call{}
-	err := json.NewDecoder(in).Decode(&c)
+	call := Call{}
+	err := json.NewDecoder(in).Decode(&call)
 	if err != nil {
 		return nil, err
 	}
-	return &c, nil
+	return &call, nil
 }
 
 func MakeCall(url string, namevalues ...string) *Call {
-	c := &Call{
+	call := &Call{
 		URL: url,
 	}
 
@@ -149,14 +149,14 @@ func MakeCall(url string, namevalues ...string) *Call {
 		}
 	}
 	if len(values) > 0 {
-		c.Values = values
+		call.Values = values
 	}
-	return c
+	return call
 }
 
-func (c *Call) GetValue(name, defaultValue string) string {
-	if len(c.Values) == 0 || c.Values[name] == "" {
+func (call *Call) GetValue(name, defaultValue string) string {
+	if len(call.Values) == 0 || call.Values[name] == "" {
 		return defaultValue
 	}
-	return c.Values[name]
+	return call.Values[name]
 }

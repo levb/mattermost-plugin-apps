@@ -5,7 +5,6 @@ package uphttp
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -56,7 +55,6 @@ func (u *Upstream) invoke(fromMattermostUserID string, call *api.Call) (*http.Re
 
 // post does not close resp.Body, it's the caller's responsibility
 func (u *Upstream) post(fromMattermostUserID string, url string, msg interface{}) (*http.Response, error) {
-	fmt.Printf("<><> uphttp.Call 0: %v\n", url)
 	client := u.getClient()
 	jwtoken, err := createJWT(fromMattermostUserID, u.appSecret)
 	if err != nil {
@@ -81,7 +79,6 @@ func (u *Upstream) post(fromMattermostUserID string, url string, msg interface{}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("<><> uphttp.Call 1: %v\n", err)
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {

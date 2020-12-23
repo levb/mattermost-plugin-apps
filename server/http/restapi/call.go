@@ -37,6 +37,6 @@ func (a *restapi) handleCall(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	cr := a.api.Proxy.Call(api.SessionToken(session.Token), call)
+	_, cr := a.api.Proxy.Call(api.SessionToken(session.Token), call)
 	httputils.WriteJSON(w, cr)
 }

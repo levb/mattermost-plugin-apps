@@ -58,9 +58,16 @@ func (p *Proxy) HandleOAuth(w http.ResponseWriter, req *http.Request) {
 	p.newMattermostOAuthenticator(app).ServeHTTP(w, req)
 }
 
-func (p *Proxy) startMattermostOAuthConnect(oauth oauther.OAuther, userID string, app *api.App, callOnComplete *api.Call) (string, error) {
+func (p *Proxy) StartOAuthConnect(userID string, appID api.AppID, callOnComplete *api.Call) (string, error) {
 	fmt.Printf("<><> startMattermostOAuthConnect 1: %v\n", userID)
-	err := oauth.Deauthorize(userID)
+
+	app, err := p.store.LoadApp(appID)
+	if err != nil {
+		return "", err
+	}
+	oauth := p.newMattermostOAuthenticator(app)
+
+	err = oauth.Deauthorize(userID)
 	if err != nil {
 		return "", err
 	}
@@ -82,5 +89,5 @@ func (p *Proxy) finishMattermostOAuthConnect(userID string, token oauth2.Token, 
 	}
 
 	// TODO: figure out what to do with the CallResponse
-	_ = p.Call("", call)
+	_, _ = p.Call("", call)
 }

@@ -20,7 +20,9 @@ import (
 )
 
 type Proxy struct {
-	builtIn map[api.AppID]api.Upstream
+	// Built-in Apps are linked in Go and invoked directly. The list is
+	// initialized on startup, and need not be synchronized.
+	builtinProvisionedApps map[api.AppID]api.Upstream
 
 	mm        *pluginapi.Client
 	conf      api.Configurator
@@ -31,23 +33,26 @@ type Proxy struct {
 var _ api.Proxy = (*Proxy)(nil)
 
 func NewProxy(mm *pluginapi.Client, awsClient *aws.Client, conf api.Configurator, store api.Store) *Proxy {
-	return &Proxy{nil, mm, conf, store, awsClient}
+	return &Proxy{
+		mm:        mm,
+		conf:      conf,
+		store:     store,
+		awsClient: awsClient,
+	}
 }
 
-func (p *Proxy) Call(sessionToken api.SessionToken, call *api.Call) *api.CallResponse {
+func (p *Proxy) Call(sessionToken api.SessionToken, call *api.Call) (*api.Call, *api.CallResponse) {
 	conf := p.conf.GetConfig()
 	app, err := p.store.LoadApp(call.Context.AppID)
 	if err != nil {
-		return api.NewErrorCallResponse(err)
+		return call, api.NewErrorCallResponse(err)
 	}
 
-	expander := p.newExpander(call.Context, sessionToken)
-	callContext, connectURL, err := p.ExpandForApp(expander, call, app)
-	if err != nil {
-		return api.NewErrorCallResponse(err)
-	}
-	if connectURL != "" {
-		fmt.Printf("<><> Call 3: connectURL: %q, %v\n", connectURL, err)
+	oauth := p.newMattermostOAuthenticator(app)
+	call, err = p.expandCall(call, app, sessionToken, oauth, nil)
+	if err == errOAuthRequired {
+		connectURL := oauth.GetConnectURL()
+		fmt.Printf("<><> Call 2: connectURL: %q, %v\n", connectURL, err)
 
 		post := &model.Post{
 			UserId:    conf.BotUserID,
@@ -56,20 +61,22 @@ func (p *Proxy) Call(sessionToken api.SessionToken, call *api.Call) *api.CallRes
 		}
 		p.mm.Post.SendEphemeralPost(call.Context.ActingUserID, post)
 		err = p.mm.Post.DM(conf.BotUserID, call.Context.ActingUserID, post)
-		fmt.Printf("<><> Call 4: %v\n", err)
-		return &api.CallResponse{
+		fmt.Printf("<><> Call 3: %v\n", err)
+		return call, &api.CallResponse{
 			Type:          api.CallResponseTypeNavigate,
 			NavigateToURL: connectURL,
 		}
 	}
-	call.Context = callContext
+	if err != nil {
+		return call, api.NewErrorCallResponse(err)
+	}
 
 	up, err := p.upstreamForApp(app)
 	if err != nil {
-		return api.NewErrorCallResponse(err)
+		return call, api.NewErrorCallResponse(err)
 	}
 	cr := upstream.Call(up, call)
-	fmt.Printf("<><> Call 2: cr: %+v\n", cr)
+	fmt.Printf("<><> Call %s done: %s: %s\n", call.URL, cr.Type, cr.Markdown)
 
 	// TODO: the user-agents do not yet support Navigate, so post messages with the URL
 	if cr.Type == api.CallResponseTypeNavigate {
@@ -81,7 +88,7 @@ func (p *Proxy) Call(sessionToken api.SessionToken, call *api.Call) *api.CallRes
 		p.mm.Post.SendEphemeralPost(call.Context.ActingUserID, post)
 	}
 
-	return cr
+	return call, cr
 }
 
 func (p *Proxy) Notify(cc *api.Context, subj api.Subject) error {
@@ -90,7 +97,7 @@ func (p *Proxy) Notify(cc *api.Context, subj api.Subject) error {
 		return err
 	}
 
-	expander := p.newExpander(cc, "")
+	expandCache := &expandCache{}
 
 	notify := func(sub *api.Subscription) error {
 		call := sub.Call
@@ -101,16 +108,15 @@ func (p *Proxy) Notify(cc *api.Context, subj api.Subject) error {
 		if err != nil {
 			return err
 		}
-		callContext, connectURL, err := p.ExpandForApp(expander, call, app)
+		oauth := p.newMattermostOAuthenticator(app)
+		call, err = p.expandCall(call, app, "", oauth, expandCache)
+		// TODO: DM the user to renew expired tokens?
+		if err == errOAuthRequired {
+			return errors.New("missing or invalid OAuth2 token")
+		}
 		if err != nil {
 			return err
 		}
-		// TODO: DM the user to renew expired tokens?
-		if connectURL != "" {
-			return errors.New("missing or invalid OAuth2 token")
-		}
-		callContext.Subject = subj
-		call.Context = callContext
 
 		up, err := p.upstreamForApp(app)
 		if err != nil {
@@ -138,10 +144,10 @@ func (p *Proxy) upstreamForApp(app *api.App) (api.Upstream, error) {
 		return upawslambda.NewUpstream(app, p.awsClient), nil
 
 	case api.AppTypeBuiltin:
-		if len(p.builtIn) == 0 {
+		if len(p.builtinProvisionedApps) == 0 {
 			return nil, errors.Errorf("builtin app not found: %s", app.Manifest.AppID)
 		}
-		up := p.builtIn[app.Manifest.AppID]
+		up := p.builtinProvisionedApps[app.Manifest.AppID]
 		if up == nil {
 			return nil, errors.Errorf("builtin app not found: %s", app.Manifest.AppID)
 		}
@@ -153,10 +159,10 @@ func (p *Proxy) upstreamForApp(app *api.App) (api.Upstream, error) {
 }
 
 func (p *Proxy) ProvisionBuiltIn(appID api.AppID, up api.Upstream) {
-	if p.builtIn == nil {
-		p.builtIn = map[api.AppID]api.Upstream{}
+	if p.builtinProvisionedApps == nil {
+		p.builtinProvisionedApps = map[api.AppID]api.Upstream{}
 	}
-	p.builtIn[appID] = up
+	p.builtinProvisionedApps[appID] = up
 }
 
 func WriteCallError(w http.ResponseWriter, statusCode int, err error) {

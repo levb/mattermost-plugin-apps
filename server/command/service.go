@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -24,22 +23,22 @@ type service struct {
 var _ Service = (*service)(nil)
 
 func MakeService(appsService *api.Service) (Service, error) {
-	conf := appsService.Configurator.GetConfig()
+	// conf := appsService.Configurator.GetConfig()
 
 	s := &service{
 		api: appsService,
 	}
-	err := appsService.Mattermost.SlashCommand.Register(&model.Command{
-		Trigger:          api.CommandTrigger,
-		DisplayName:      conf.BuildConfig.Manifest.Name,
-		Description:      conf.BuildConfig.Manifest.Description,
-		AutoComplete:     true,
-		AutoCompleteDesc: "Manage Cloud Apps",
-		AutoCompleteHint: fmt.Sprintf("Usage: `/%s info`.", api.CommandTrigger),
-	})
-	if err != nil {
-		return nil, err
-	}
+	// err := appsService.Mattermost.SlashCommand.Register(&model.Command{
+	// 	Trigger:          api.CommandTrigger,
+	// 	DisplayName:      conf.BuildConfig.Manifest.Name,
+	// 	Description:      conf.BuildConfig.Manifest.Description,
+	// 	AutoComplete:     true,
+	// 	AutoCompleteDesc: "Manage Cloud Apps",
+	// 	AutoCompleteHint: fmt.Sprintf("Usage: `/%s info`.", api.CommandTrigger),
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return s, nil
 }
