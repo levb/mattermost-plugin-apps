@@ -6,7 +6,7 @@ package api
 // Internal configuration apps.of mattermost-plugin-apps
 const (
 	Repository     = "mattermost-plugin-apps"
-	CommandTrigger = "apps"
+	CommandTrigger = "apps-plugin"
 
 	BotUsername    = "appsbot"
 	BotDisplayName = "Mattermost Apps"
@@ -26,8 +26,7 @@ const (
 	AppsPath = "/apps"
 
 	// OAuth2 sub-paths.
-	PathOAuth2         = "/oauth2"          // convention for Mattermost Apps, comes from OAuther
-	PathOAuth2Complete = "/oauth2/complete" // convention for Mattermost Apps, comes from OAuther
+	OAuth2Path = "/oauth2" // convention for Mattermost Apps, comes from OAuther
 
 	// Other sub-paths.
 	CallPath      = "/call"

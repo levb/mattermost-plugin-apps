@@ -4,19 +4,21 @@ import (
 	"github.com/mattermost/mattermost-server/v5/model"
 )
 
+// Context should be abbreviated as `cc`.
 type Context struct {
-	AppID             AppID             `json:"app_id"`
-	Location          Location          `json:"location,omitempty"`
-	Subject           Subject           `json:"subject,omitempty"`
-	BotUserID         string            `json:"bot_user_id,omitempty"`
-	ActingUserID      string            `json:"acting_user_id,omitempty"`
-	UserID            string            `json:"user_id,omitempty"`
-	TeamID            string            `json:"team_id"`
-	ChannelID         string            `json:"channel_id,omitempty"`
-	PostID            string            `json:"post_id,omitempty"`
-	RootPostID        string            `json:"root_post_id,omitempty"`
-	Props             map[string]string `json:"props,omitempty"`
-	MattermostSiteURL string            `json:"mattermost_site_url"`
+	AppID                 AppID             `json:"app_id"`
+	Location              Location          `json:"location,omitempty"`
+	Subject               Subject           `json:"subject,omitempty"`
+	BotUserID             string            `json:"bot_user_id,omitempty"`
+	ActingUserID          string            `json:"acting_user_id,omitempty"`
+	ActingUserIsConnected bool              `json:"acting_user_is_connected,omitempty"`
+	UserID                string            `json:"user_id,omitempty"`
+	TeamID                string            `json:"team_id"`
+	ChannelID             string            `json:"channel_id,omitempty"`
+	PostID                string            `json:"post_id,omitempty"`
+	RootPostID            string            `json:"root_post_id,omitempty"`
+	Props                 map[string]string `json:"props,omitempty"`
+	MattermostSiteURL     string            `json:"mattermost_site_url"`
 	ExpandedContext
 }
 
@@ -36,11 +38,6 @@ type ExpandedContext struct {
 
 	// TODO replace User with mentions
 	User *model.User `json:"user,omitempty"`
-}
-
-type Thread struct {
-	ChannelID  string `json:"channel_id"`
-	RootPostID string `json:"root_post_id"`
 }
 
 func (cc *Context) GetProp(n string) string {

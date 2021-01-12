@@ -11,6 +11,8 @@ import (
 const prefixSubs = "sub_"
 
 type Store struct {
+	builtinInstalledApps map[api.AppID]*api.App
+
 	mm   *pluginapi.Client
 	conf api.Configurator
 }
@@ -19,7 +21,8 @@ var _ api.Store = (*Store)(nil)
 
 func NewStore(mm *pluginapi.Client, conf api.Configurator) *Store {
 	return &Store{
-		mm:   mm,
-		conf: conf,
+		builtinInstalledApps: map[api.AppID]*api.App{},
+		mm:                   mm,
+		conf:                 conf,
 	}
 }

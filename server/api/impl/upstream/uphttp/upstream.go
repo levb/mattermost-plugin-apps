@@ -82,7 +82,8 @@ func (u *Upstream) post(fromMattermostUserID string, url string, msg interface{}
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, httputils.DecodeJSONError(resp.Body)
+		bb, _ := httputils.ReadAndClose(resp.Body)
+		return nil, errors.New(string(bb))
 	}
 
 	return resp, nil

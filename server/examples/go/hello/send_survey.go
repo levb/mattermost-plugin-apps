@@ -3,6 +3,8 @@ package hello
 import (
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/mattermost/mattermost-server/v5/model"
 
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
@@ -10,7 +12,21 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func NewSendSurveyFormResponse(c *api.Call) *api.CallResponse {
+func (h *HelloApp) SendSurvey(call *api.Call) *api.CallResponse {
+	switch call.Type {
+	case api.CallTypeForm:
+		return newSendSurveyFormResponse(call)
+
+	case api.CallTypeSubmit:
+		txt, err := h.sendSurvey(call)
+		return api.NewCallResponse(txt, nil, err)
+
+	default:
+		return api.NewErrorCallResponse(errors.New("not supported"))
+	}
+}
+
+func newSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 	message := ""
 	if c.Context != nil && c.Context.Post != nil {
 		message = c.Context.Post.Message
@@ -49,7 +65,7 @@ func NewSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 	}
 }
 
-func (h *HelloApp) SendSurvey(c *api.Call) (md.MD, error) {
+func (h *HelloApp) sendSurvey(c *api.Call) (md.MD, error) {
 	bot := examples.AsBot(c.Context)
 	userID := c.GetValue(fieldUserID, c.Context.ActingUserID)
 

@@ -11,6 +11,7 @@ import (
 
 const OutgoingAuthHeader = "Mattermost-App-Authorization"
 
+// Upstream should be abbreviated as `up`.
 type Upstream interface {
 	Roundtrip(call *Call) (io.ReadCloser, error)
 	OneWay(call *Call) error

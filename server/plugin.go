@@ -20,11 +20,13 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/configurator"
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/proxy"
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/store"
+	"github.com/mattermost/mattermost-plugin-apps/server/builtin"
 	"github.com/mattermost/mattermost-plugin-apps/server/command"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/builtin_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/http_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/http"
 	"github.com/mattermost/mattermost-plugin-apps/server/http/dialog"
+	"github.com/mattermost/mattermost-plugin-apps/server/http/oauth"
 	"github.com/mattermost/mattermost-plugin-apps/server/http/restapi"
 )
 
@@ -74,10 +76,16 @@ func (p *Plugin) OnActivate() error {
 		Admin:        admin.NewAdmin(mm, conf, store, proxy),
 		AWS:          awsClient,
 	}
+
+	builtinApp := builtin.NewApp(p.api)
+	proxy.ProvisionBuiltIn(builtin.AppID, builtinApp)
+	store.AddBuiltinApp(builtinApp.MattermostApp())
+
 	proxy.ProvisionBuiltIn(builtin_hello.AppID, builtin_hello.New(p.api))
 
 	p.http = http.NewService(mux.NewRouter(), p.api,
 		dialog.Init,
+		oauth.Init,
 		restapi.Init,
 		http_hello.Init,
 	)

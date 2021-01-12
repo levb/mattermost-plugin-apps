@@ -44,6 +44,7 @@ func Init(router *mux.Router, appsService *api.Service) {
 	handle(r, hello.PathSendSurvey, h.SendSurvey)
 	handle(r, hello.PathSurvey, h.Survey)
 	handle(r, hello.PathUserJoinedChannel, h.UserJoinedChannel)
+	handle(r, hello.PathPostAsUser, h.PostAsUser)
 }
 
 func (h *helloapp) handleManifest(w http.ResponseWriter, req *http.Request) {
@@ -69,27 +70,26 @@ func (h *helloapp) handleManifest(w http.ResponseWriter, req *http.Request) {
 		})
 }
 
-type handler func(http.ResponseWriter, *http.Request, *api.JWTClaims, *api.Call) (int, error)
+func (h *helloapp) Install(call *api.Call) *api.CallResponse {
+	return h.HelloApp.Install(AppID, AppDisplayName, call)
+}
 
-func handle(r *mux.Router, path string, h handler) {
+func handle(r *mux.Router, path string, h func(*api.Call) *api.CallResponse) {
 	r.HandleFunc(path,
 		func(w http.ResponseWriter, req *http.Request) {
-			claims, err := checkJWT(req)
+			_, err := checkJWT(req)
 			if err != nil {
 				proxy.WriteCallError(w, http.StatusUnauthorized, err)
 				return
 			}
 
-			data, err := api.UnmarshalCallFromReader(req.Body)
+			call, err := api.UnmarshalCallFromReader(req.Body)
 			if err != nil {
 				proxy.WriteCallError(w, http.StatusInternalServerError, err)
 				return
 			}
 
-			status, err := h(w, req, claims, data)
-			if err != nil && status != 0 && status != http.StatusOK {
-				httputils.WriteJSONStatus(w, status, err)
-			}
+			httputils.WriteJSON(w, h(call))
 		},
 	).Methods("POST")
 }

@@ -6,14 +6,16 @@ package store
 import (
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils"
+	"github.com/pkg/errors"
 )
 
 func (s *Store) ListApps() []*api.App {
-	conf := s.conf.GetConfig()
 	out := []*api.App{}
-	if len(conf.Apps) == 0 {
-		return out
+	for _, app := range s.builtinInstalledApps {
+		out = append(out, app)
 	}
+
+	conf := s.conf.GetConfig()
 	for _, v := range conf.Apps {
 		app := api.AppFromConfigMap(v)
 		out = append(out, app)
@@ -22,6 +24,11 @@ func (s *Store) ListApps() []*api.App {
 }
 
 func (s *Store) LoadApp(appID api.AppID) (*api.App, error) {
+	app := s.builtinInstalledApps[appID]
+	if app != nil {
+		return app, nil
+	}
+
 	conf := s.conf.GetConfig()
 	if len(conf.Apps) == 0 {
 		return nil, utils.ErrNotFound
@@ -34,6 +41,10 @@ func (s *Store) LoadApp(appID api.AppID) (*api.App, error) {
 }
 
 func (s *Store) StoreApp(app *api.App) error {
+	if s.builtinInstalledApps[app.Manifest.AppID] != nil {
+		return errors.Errorf("failed to store app: %s is a builtin.", app.Manifest.AppID)
+	}
+
 	conf := s.conf.GetConfig()
 	if len(conf.Apps) == 0 {
 		conf.Apps = map[string]interface{}{}
@@ -49,4 +60,10 @@ func (s *Store) StoreApp(app *api.App) error {
 	}
 
 	return s.conf.StoreConfig(conf.StoredConfig)
+}
+
+// AddBuiltinApp is not synchronized and should only be used at the plugin
+// initialization time, to "register" builtin apps.
+func (s *Store) AddBuiltinApp(app *api.App) {
+	s.builtinInstalledApps[app.Manifest.AppID] = app
 }

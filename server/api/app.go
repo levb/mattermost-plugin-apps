@@ -18,6 +18,7 @@ func (at AppType) IsValid() bool {
 		at == AppTypeBuiltin
 }
 
+// Manifest should be abbreviated as `m`.
 type Manifest struct {
 	AppID       AppID   `json:"app_id"`
 	Type        AppType `json:"app_type"`
@@ -45,8 +46,6 @@ type Manifest struct {
 
 	// By default invoke "/bindings".
 	Bindings *Call `json:"bindings,omitempty"`
-
-	// Deployment manifest for hostable apps will include path->invoke mappings
 }
 
 // Conventions for Apps paths, and field names
@@ -67,6 +66,7 @@ var DefaultBindingsCall = &Call{
 	URL: DefaultBindingsCallPath,
 }
 
+// App should be abbreviated as `app`.
 type App struct {
 	Manifest *Manifest `json:"manifest"`
 

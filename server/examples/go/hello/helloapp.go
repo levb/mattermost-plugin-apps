@@ -11,6 +11,7 @@ const (
 )
 
 const (
+	PathPostAsUser        = "/post-as-user"
 	PathSendSurvey        = "/send"
 	PathSubscribeChannel  = "/subscribe"
 	PathSurvey            = "/survey"

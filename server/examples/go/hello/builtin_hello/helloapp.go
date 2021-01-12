@@ -56,17 +56,15 @@ func (h *helloapp) Roundtrip(c *api.Call) (io.ReadCloser, error) {
 	cr := &api.CallResponse{}
 	switch c.URL {
 	case api.BindingsPath:
-		cr = &api.CallResponse{
-			Type: api.CallResponseTypeOK,
-			Data: hello.Bindings(),
-		}
-
+		cr = h.GetBindings(c)
 	case api.DefaultInstallCallPath:
-		cr = h.Install(c)
+		cr = h.Install(AppID, AppDisplayName, c)
 	case hello.PathSendSurvey:
 		cr = h.SendSurvey(c)
 	case hello.PathSurvey:
 		cr = h.Survey(c)
+	case hello.PathPostAsUser:
+		cr = h.PostAsUser(c)
 	default:
 		return nil, errors.Errorf("%s is not found", c.URL)
 	}
@@ -84,57 +82,6 @@ func (h *helloapp) OneWay(call *api.Call) error {
 		h.HelloApp.UserJoinedChannel(call)
 	default:
 		return errors.Errorf("%s is not supported", call.Context.Subject)
-	}
-	return nil
-}
-
-func (h *helloapp) Install(c *api.Call) *api.CallResponse {
-	if c.Type != api.CallTypeSubmit {
-		return api.NewErrorCallResponse(errors.New("not supported"))
-	}
-	out, err := h.HelloApp.Install(AppID, AppDisplayName, c)
-	if err != nil {
-		return api.NewErrorCallResponse(err)
-	}
-	return &api.CallResponse{
-		Type:     api.CallResponseTypeOK,
-		Markdown: out,
-	}
-}
-
-func (h *helloapp) SendSurvey(c *api.Call) *api.CallResponse {
-	switch c.Type {
-	case api.CallTypeForm:
-		return hello.NewSendSurveyFormResponse(c)
-
-	case api.CallTypeSubmit:
-		txt, err := h.HelloApp.SendSurvey(c)
-		if err != nil {
-			return api.NewErrorCallResponse(err)
-		}
-		return &api.CallResponse{
-			Type:     api.CallResponseTypeOK,
-			Markdown: txt,
-		}
-	}
-
-	return nil
-}
-
-func (h *helloapp) Survey(c *api.Call) *api.CallResponse {
-	switch c.Type {
-	case api.CallTypeForm:
-		return hello.NewSurveyFormResponse(c)
-
-	case api.CallTypeSubmit:
-		err := h.ProcessSurvey(c)
-		if err != nil {
-			return api.NewErrorCallResponse(err)
-		}
-		return &api.CallResponse{
-			Type:     api.CallResponseTypeOK,
-			Markdown: "<><> TODO",
-		}
 	}
 	return nil
 }

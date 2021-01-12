@@ -1,5 +1,6 @@
 package api
 
+// Binding should be abbreviated as `b`.
 type Binding struct {
 	// For internal use by Mattermost, Apps do not need to set.
 	AppID AppID `json:"app_id,omitempty"`
