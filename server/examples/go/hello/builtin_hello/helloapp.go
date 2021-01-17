@@ -61,6 +61,10 @@ func (h *helloapp) Roundtrip(c *api.Call) (io.ReadCloser, error) {
 		cr = h.Install(AppID, AppDisplayName, c)
 	case hello.PathSendSurvey:
 		cr = h.SendSurvey(c)
+	case hello.PathSendSurveyModal:
+		cr = h.SendSurveyModal(c)
+	case hello.PathSendSurveyCommandToModal:
+		cr = h.SendSurveyCommandToModal(c)
 	case hello.PathSurvey:
 		cr = h.Survey(c)
 	case hello.PathPostAsUser:
@@ -85,3 +89,4 @@ func (h *helloapp) OneWay(call *api.Call) error {
 	}
 	return nil
 }
+

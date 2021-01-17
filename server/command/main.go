@@ -20,6 +20,7 @@ type params struct {
 
 func (s *service) handleMain(in *params) (*model.CommandResponse, error) {
 	subcommands := map[string]func(*params) (*model.CommandResponse, error){
+		"list":                  s.executeList,
 		"debug-bindings":        s.executeDebugBindings,
 		"debug-clean":           s.executeDebugClean,
 		"debug-install-builtin": s.executeDebugInstallBuiltinHello,

@@ -5,7 +5,6 @@ package builtin
 
 import (
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
-	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
 func (a *App) installCommandForm(c *api.Call) (*api.Form, error) {
@@ -23,36 +22,33 @@ func (a *App) installCommandForm(c *api.Call) (*api.Form, error) {
 		},
 	}
 
-			{
-				Name:             fieldSecret,
-				Type:             api.FieldTypeText,
-				Description:      "The App's secret to use in JWT.",
-				Label:            flagSecret,
-				AutocompleteHint: "paste the secret obtained from the App",
-			},
-			{
-				Name:        fieldRequireUserConsent,
-				Type:        api.FieldTypeBool,
-				Description: "If **on**, users will be prompted for consent before connecting to the App",
-				Label:       flagRequireUserConsent,
-			},
-		},
-	}, nil
+	return f, nil
 }
 
-func (a *App) install(call *api.Call) (md.MD, error) {
-	appTy := call.GetValue(fieldManifestURL, "")
-	manifestURL := call.GetValue(fieldManifestURL, "")
-	secret := call.GetValue(fieldSecret, "")
-	requireUserConsent := call.GetValueBool(fieldRequireUserConsent)
+// 			{
+// 				Name:             fieldSecret,
+// 				Type:             api.FieldTypeText,
+// 				Description:      "The App's secret to use in JWT.",
+// 				Label:            flagSecret,
+// 				AutocompleteHint: "paste the secret obtained from the App",
+// 			},
+// 			{
+// 				Name:        fieldRequireUserConsent,
+// 				Type:        api.FieldTypeBool,
+// 				Description: "If **on**, users will be prompted for consent before connecting to the App",
+// 				Label:       flagRequireUserConsent,
+// 			},
+// 		},
+// 	}, nil
+// }
 
-	if 
+// func (a *App) install(call *api.Call) (md.MD, error) {
+// 	appTy := call.GetValue(fieldManifestURL, "")
+// 	manifestURL := call.GetValue(fieldManifestURL, "")
+// 	secret := call.GetValue(fieldSecret, "")
+// 	requireUserConsent := call.GetValueBool(fieldRequireUserConsent)
 
+// 	if
 
-
-
-
-
-
-	return md.Markdownf("Click [here](%s) to continue", connectURL), nil
-}
+// 	return md.Markdownf("Click [here](%s) to continue", connectURL), nil
+// }

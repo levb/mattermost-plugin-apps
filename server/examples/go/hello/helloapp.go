@@ -11,11 +11,13 @@ const (
 )
 
 const (
-	PathPostAsUser        = "/post-as-user"
-	PathSendSurvey        = "/send"
-	PathSubscribeChannel  = "/subscribe"
-	PathSurvey            = "/survey"
-	PathUserJoinedChannel = "/user-joined-channel"
+	PathPostAsUser               = "/post-as-user"
+	PathSendSurvey               = "/send"
+	PathSendSurveyCommandToModal = "/send-command-modal"
+	PathSendSurveyModal          = "/send-modal"
+	PathSubscribeChannel         = "/subscribe"
+	PathSurvey                   = "/survey"
+	PathUserJoinedChannel        = "/user-joined-channel"
 )
 
 type HelloApp struct {

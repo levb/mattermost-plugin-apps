@@ -18,6 +18,8 @@ const (
 	// CallTypeCancel is used for for the (rare?) case of when the form with
 	// SubmitOnCancel set is dismissed by the user.
 	CallTypeCancel = CallType("cancel")
+	// CallTypeLookup is used to fetch items for dynamic select elements
+	CallTypeLookup = CallType("lookup")
 )
 
 // A Call invocation is supplied a BotAccessToken as part of the context. If a
@@ -154,7 +156,7 @@ func MakeCall(url string, namevalues ...string) *Call {
 	return call
 }
 
-func (call *Call) GetValue(name, defaultValue string) string {
+func (call *Call) GetStringValue(name, defaultValue string) string {
 	if len(call.Values) == 0 {
 		return defaultValue
 	}
@@ -162,11 +164,22 @@ func (call *Call) GetValue(name, defaultValue string) string {
 	if v == nil {
 		return defaultValue
 	}
-	s, ok := v.(string)
-	if !ok {
+	switch v := v.(type) {
+	case string:
+		return v
+
+	case map[string]interface{}:
+		if len(v) == 0 {
+			return defaultValue
+		}
+		if s, ok := v["value"].(string); ok {
+			return s
+		}
+		return defaultValue
+
+	default:
 		return defaultValue
 	}
-	return s
 }
 
 func (call *Call) GetValueBool(name string) bool {

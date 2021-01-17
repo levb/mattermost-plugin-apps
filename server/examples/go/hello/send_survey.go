@@ -1,6 +1,7 @@
 package hello
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -15,21 +16,81 @@ import (
 func (h *HelloApp) SendSurvey(call *api.Call) *api.CallResponse {
 	switch call.Type {
 	case api.CallTypeForm:
-		return newSendSurveyFormResponse(call)
+		return NewSendSurveyFormResponse(call)
 
 	case api.CallTypeSubmit:
 		txt, err := h.sendSurvey(call)
 		return api.NewCallResponse(txt, nil, err)
+
+	case api.CallTypeLookup:
+		return &api.CallResponse{
+			Data: map[string]interface{}{
+				"items": []*api.SelectOption{
+					{
+						Label: "Option 1",
+						Value: "option1",
+					},
+				},
+			},
+		}
 
 	default:
 		return api.NewErrorCallResponse(errors.New("not supported"))
 	}
 }
 
-func newSendSurveyFormResponse(c *api.Call) *api.CallResponse {
+func (h *HelloApp) SendSurveyModal(c *api.Call) *api.CallResponse {
+	return NewSendSurveyFormResponse(c)
+}
+
+func (h *HelloApp) SendSurveyCommandToModal(c *api.Call) *api.CallResponse {
+	return NewSendSurveyPartialFormResponse(c)
+}
+
+type SurveyFormSubmission struct {
+	UserID  string                 `json:"userID"`
+	Message string                 `json:"message"`
+	Other   map[string]interface{} `json:"other"`
+}
+
+func extractSurveyFormValues(c *api.Call) SurveyFormSubmission {
 	message := ""
+	userID := ""
+	var other map[string]interface{} = nil
 	if c.Context != nil && c.Context.Post != nil {
 		message = c.Context.Post.Message
+	}
+
+	topValues := c.Values
+	formValues := c.Values
+	if c.Type == api.CallTypeForm && topValues != nil {
+		formValues, _ = topValues["values"].(map[string]interface{})
+	}
+
+	if formValues != nil {
+		userID, _ = formValues["userID"].(string)
+		message, _ = formValues["message"].(string)
+		otherTemp, ok2 := formValues["other"].(map[string]interface{})
+		if ok2 {
+			other = otherTemp
+		} else {
+			other = nil
+		}
+	}
+
+	return SurveyFormSubmission{
+		UserID:  userID,
+		Message: message,
+		Other:   other,
+	}
+}
+
+func NewSendSurveyFormResponse(c *api.Call) *api.CallResponse {
+	submission := extractSurveyFormValues(c)
+	name, _ := c.Values["name"].(string)
+
+	if name == "userID" {
+		submission.Message = fmt.Sprintf("%s Now sending to %s.", submission.Message, submission.UserID)
 	}
 
 	return &api.CallResponse{
@@ -38,6 +99,7 @@ func newSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 			Title:  "Send a survey to user",
 			Header: "Message modal form header",
 			Footer: "Message modal form footer",
+			Call:   api.MakeCall(PathSendSurvey),
 			Fields: []*api.Field{
 				{
 					Name:                 fieldUserID,
@@ -47,6 +109,16 @@ func newSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 					ModalLabel:           "User",
 					AutocompleteHint:     "enter user ID or @user",
 					AutocompletePosition: 1,
+					Value:                submission.UserID,
+					SelectRefresh:        true,
+				}, {
+					Name:             "other",
+					Type:             api.FieldTypeDynamicSelect,
+					Description:      "Some values",
+					Label:            "other",
+					AutocompleteHint: "Pick one",
+					ModalLabel:       "Other",
+					Value:            submission.Other,
 				}, {
 					Name:             fieldMessage,
 					Type:             api.FieldTypeText,
@@ -58,7 +130,38 @@ func newSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 					TextSubtype:      "textarea",
 					TextMinLength:    2,
 					TextMaxLength:    1024,
-					Value:            message,
+					Value:            submission.Message,
+				},
+			},
+		},
+	}
+}
+
+func NewSendSurveyPartialFormResponse(c *api.Call) *api.CallResponse {
+	if c.Type == api.CallTypeSubmit {
+		return NewSendSurveyFormResponse(c)
+	}
+
+	return &api.CallResponse{
+		Type: api.CallResponseTypeForm,
+		Form: &api.Form{
+			Title:  "Send a survey to user",
+			Header: "Message modal form header",
+			Footer: "Message modal form footer",
+			Call:   api.MakeCall(PathSendSurveyCommandToModal),
+			Fields: []*api.Field{
+				{
+					Name:             fieldMessage,
+					Type:             api.FieldTypeText,
+					Description:      "Text to ask the user about",
+					IsRequired:       true,
+					Label:            "message",
+					ModalLabel:       "Text",
+					AutocompleteHint: "Anything you want to say",
+					TextSubtype:      "textarea",
+					TextMinLength:    2,
+					TextMaxLength:    1024,
+					Value:            "",
 				},
 			},
 		},
@@ -67,7 +170,7 @@ func newSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 
 func (h *HelloApp) sendSurvey(c *api.Call) (md.MD, error) {
 	bot := examples.AsBot(c.Context)
-	userID := c.GetValue(fieldUserID, c.Context.ActingUserID)
+	userID := c.GetStringValue(fieldUserID, c.Context.ActingUserID)
 
 	// TODO this should be done with expanding mentions, make a ticket
 	if strings.HasPrefix(userID, "@") {
@@ -77,7 +180,7 @@ func (h *HelloApp) sendSurvey(c *api.Call) (md.MD, error) {
 		}
 	}
 
-	message := c.GetValue(fieldMessage, "Hello")
+	message := c.GetStringValue(fieldMessage, "Hello")
 	if c.Context.Post != nil {
 		message += "\n>>> " + c.Context.Post.Message
 	}

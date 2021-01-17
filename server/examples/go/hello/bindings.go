@@ -14,13 +14,11 @@ func bindings(call *api.Call) []*api.Binding {
 		ActingUserAccessToken: api.ExpandAll,
 	}
 
+	commandToModal := api.MakeCall(PathSendSurveyCommandToModal)
+
 	justSend := api.MakeCall(PathSendSurvey)
 
-	modal := api.MakeCall(PathSendSurvey)
-	modal.Type = api.CallTypeForm
-
-	modalFromPost := api.MakeCall(PathSendSurvey)
-	modalFromPost.Type = api.CallTypeForm
+	modalFromPost := api.MakeCall(PathSendSurveyModal)
 	modalFromPost.Expand = &api.Expand{Post: api.ExpandAll}
 
 	channelHeaderBindings := []*api.Binding{
@@ -61,6 +59,12 @@ func bindings(call *api.Call) []*api.Binding {
 			Hint:        "[@user] [--message text]",
 			Description: "send a message to a user",
 			Call:        justSend,
+		}, {
+			Label:       "message-modal",
+			Location:    "message-modal",
+			Hint:        "[--message] message",
+			Description: "send a message to a user",
+			Call:        commandToModal,
 		}, {
 			Label:       "manage",
 			Location:    "manage",

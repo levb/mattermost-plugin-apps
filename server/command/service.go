@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -23,7 +24,7 @@ type service struct {
 var _ Service = (*service)(nil)
 
 func MakeService(appsService *api.Service) (Service, error) {
-	// conf := appsService.Configurator.GetConfig()
+	conf := appsService.Configurator.GetConfig()
 
 	s := &service{
 		api: appsService,

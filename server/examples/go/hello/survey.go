@@ -39,7 +39,7 @@ func NewSurveyForm(message string) *api.Form {
 }
 
 func newSurveyFormResponse(c *api.Call) *api.CallResponse {
-	message := c.GetValue(fieldMessage, "default hello message")
+	message := c.GetStringValue(fieldMessage, "default hello message")
 	return &api.CallResponse{
 		Type: api.CallResponseTypeForm,
 		Form: NewSurveyForm(message),

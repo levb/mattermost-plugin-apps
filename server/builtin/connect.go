@@ -27,7 +27,7 @@ func (a *App) connectForm(c *api.Call) (*api.Form, error) {
 }
 
 func (a *App) connect(call *api.Call) (md.MD, error) {
-	appID := api.AppID(call.GetValue(fieldAppID, ""))
+	appID := api.AppID(call.GetStringValue(fieldAppID, ""))
 	connectURL, err := a.API.Proxy.StartOAuthConnect(call.Context.ActingUserID, appID, call)
 	if err != nil {
 		return "", err
@@ -36,7 +36,7 @@ func (a *App) connect(call *api.Call) (md.MD, error) {
 }
 
 func (a *App) disconnect(call *api.Call) (md.MD, error) {
-	appID := api.AppID(call.GetValue(fieldAppID, ""))
+	appID := api.AppID(call.GetStringValue(fieldAppID, ""))
 	return md.Markdownf("TODO: disconnect %s", appID), nil
 }
 
