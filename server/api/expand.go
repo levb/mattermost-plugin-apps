@@ -10,7 +10,7 @@ import (
 type ExpandLevel string
 
 // Expand specifies the data dependencies of the Call that should be provided in
-// its Context at the onvocation time.
+// its Context at the invocation time.
 //
 // Example:
 // ```json

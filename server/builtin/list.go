@@ -8,6 +8,15 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
+func (a *App) listForm(c *api.Call) (*api.Form, error) {
+	return &api.Form{
+		Title: "list Apps",
+		Call: &api.Call{
+			URL: PathList,
+		},
+	}, nil
+}
+
 func (a *App) list(call *api.Call) (md.MD, error) {
 	apps, err := a.API.Admin.ListApps()
 	if err != nil {

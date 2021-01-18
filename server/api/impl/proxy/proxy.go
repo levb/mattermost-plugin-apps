@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pkg/errors"
+
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
 	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/aws"
@@ -42,6 +43,7 @@ func NewProxy(mm *pluginapi.Client, awsClient *aws.Client, conf api.Configurator
 }
 
 func (p *Proxy) Call(sessionToken api.SessionToken, call *api.Call) (*api.Call, *api.CallResponse) {
+	fmt.Printf("<><> Call 1: %s %q\n", call.URL, call.Type)
 	conf := p.conf.GetConfig()
 	app, err := p.store.LoadApp(call.Context.AppID)
 	if err != nil {
@@ -76,7 +78,7 @@ func (p *Proxy) Call(sessionToken api.SessionToken, call *api.Call) (*api.Call, 
 		return call, api.NewErrorCallResponse(err)
 	}
 	cr := upstream.Call(up, call)
-	fmt.Printf("<><> Call %s done: %q: %q %q\n", call.URL, cr.Type, cr.Markdown, cr.ErrorText)
+	fmt.Printf("<><> Call 4: %s done: %q: %q %q\n", call.URL, cr.Type, cr.Markdown, cr.ErrorText)
 
 	// TODO: the user-agents do not yet support Navigate, so post messages with the URL
 	if cr.Type == api.CallResponseTypeNavigate {

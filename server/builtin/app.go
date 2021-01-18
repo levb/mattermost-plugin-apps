@@ -90,9 +90,9 @@ func (a *App) Roundtrip(c *api.Call) (io.ReadCloser, error) {
 	case api.BindingsPath:
 		cr = a.funcGetBindings(c)
 	case PathInfo:
-		cr = simpleFunc(nil, a.info)(c)
+		cr = simpleFunc(a.infoForm, a.info)(c)
 	case PathList:
-		cr = simpleFunc(nil, a.list)(c)
+		cr = simpleFunc(a.listForm, a.list)(c)
 	case PathConnect:
 		cr = simpleFunc(a.connectForm, a.connect)(c)
 	case PathDisconnect:

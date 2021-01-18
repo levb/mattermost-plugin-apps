@@ -16,6 +16,9 @@ func (s *Store) ListApps() []*api.App {
 	}
 
 	conf := s.conf.GetConfig()
+	if conf.Apps == nil {
+		return nil
+	}
 	for _, v := range conf.Apps {
 		app := api.AppFromConfigMap(v)
 		out = append(out, app)

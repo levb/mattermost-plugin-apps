@@ -8,6 +8,15 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
+func (a *App) infoForm(c *api.Call) (*api.Form, error) {
+	return &api.Form{
+		Title: "Apps proxy info",
+		Call: &api.Call{
+			URL: PathInfo,
+		},
+	}, nil
+}
+
 func (a *App) info(call *api.Call) (md.MD, error) {
 	conf := a.API.Configurator.GetConfig()
 
