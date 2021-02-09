@@ -182,7 +182,7 @@ func (call *Call) GetStringValue(name, defaultValue string) string {
 	}
 }
 
-func (call *Call) GetValueBool(name string) bool {
+func (call *Call) GetBoolValue(name string) bool {
 	if len(call.Values) == 0 {
 		return false
 	}

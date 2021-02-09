@@ -20,7 +20,7 @@ type expandCache struct {
 
 var errOAuthRequired = errors.New("oauth2 (re-)authorization with Mattermost required")
 
-func (p *Proxy) expandCall(inCall *api.Call, app *api.App, sessionToken api.SessionToken, oauth oauther.OAuther, cache *expandCache) (*api.Call, error) {
+func (p *Proxy) expandCall(inCall *api.Call, app *api.App, adminAccessToken string, oauth oauther.OAuther, cache *expandCache) (*api.Call, error) {
 	call := *inCall
 	if cache == nil {
 		cache = &expandCache{}
@@ -74,7 +74,7 @@ func (p *Proxy) expandCall(inCall *api.Call, app *api.App, sessionToken api.Sess
 	// out of expand?
 	// TODO: Implement collecting user consent for the admin token, in-line?
 	if expand.AdminAccessToken.Any() {
-		cc.AdminAccessToken = string(sessionToken)
+		cc.AdminAccessToken = adminAccessToken
 	}
 
 	if expand.Channel != "" && cc.ChannelID != "" && cache.channel == nil {

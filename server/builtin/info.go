@@ -17,9 +17,8 @@ func (a *App) infoForm(c *api.Call) (*api.Form, error) {
 	}, nil
 }
 
-func (a *App) info(call *api.Call) (md.MD, error) {
+func (a *App) info(call *api.Call) *api.CallResponse {
 	conf := a.API.Configurator.GetConfig()
-
 	resp := md.Markdownf("Mattermost Cloud Apps plugin version: %s, "+
 		"[%s](https://github.com/mattermost/%s/commit/%s), built %s\n",
 		conf.Version,
@@ -27,5 +26,6 @@ func (a *App) info(call *api.Call) (md.MD, error) {
 		api.Repository,
 		conf.BuildHash,
 		conf.BuildDate)
-	return resp, nil
+
+	return api.NewCallResponse(resp, nil, nil)
 }

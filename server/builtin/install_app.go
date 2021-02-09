@@ -5,50 +5,75 @@ package builtin
 
 import (
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
-	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func (a *App) clean(call *api.Call) *api.CallResponse {
-	_ = a.API.Mattermost.KV.DeleteAll()
-	_ = a.API.Configurator.StoreConfig(&api.StoredConfig{})
-	txt := md.MD("Deleted all KV records and emptied the config.")
-	return api.NewCallResponse(txt, nil, nil)
+func (a *App) installAppForm(manifest *api.Manifest) *api.Form {
+	fields := []*api.Field{
+		{
+			Name:        fieldRequireUserConsent,
+			Type:        api.FieldTypeBool,
+			Description: "If **on**, users will be prompted for consent before connecting to the App",
+			Label:       flagRequireUserConsent,
+		},
+	}
+
+	if manifest.Type == api.AppTypeHTTP {
+		fields = append(fields, &api.Field{
+			Name:             fieldSecret,
+			Type:             api.FieldTypeText,
+			Description:      "The App's secret to use in JWT.",
+			Label:            flagSecret,
+			AutocompleteHint: "paste the secret obtained from the App",
+		})
+	}
+
+	return &api.Form{
+		Title:  "Install an App",
+		Fields: fields,
+		Call: &api.Call{
+			URL: PathInstallAppCommand,
+		},
+	}
 }
 
-// func (a *App) debugInstall(call *api.Call) (md.MD, error) {
-// 	appID := api.AppID(call.GetStringValue(fieldExampleApp, ""))
-// 	fmt.Printf("<><> debugInstall 1: appID: %s\n", appID)
+func (a *App) installApp(call *api.Call) *api.CallResponse {
+	// secret := call.GetStringValue(fieldSecret, "")
+	// requireUserConsent := call.GetBoolValue(fieldRequireUserConsent)
+	// 	appID := api.AppID(call.GetStringValue(fieldExampleApp, ""))
+	// 	fmt.Printf("<><> debugInstall 1: appID: %s\n", appID)
 
-// 	manifest := builtin_hello.Manifest()
+	// 	manifest := builtin_hello.Manifest()
 
-// 	app, _, err := a.API.Admin.ProvisionApp(
-// 		&api.Context{
-// 			ActingUserID: params.commandArgs.UserId,
-// 		},
-// 		api.SessionToken(params.commandArgs.Session.Token),
-// 		&api.InProvisionApp{
-// 			Manifest: manifest,
-// 			Force:    true,
-// 		},
-// 	)
-// 	if err != nil {
-// 		return errorOut(params, err)
-// 	}
+	// 	app, _, err := a.API.Admin.ProvisionApp(
+	// 		&api.Context{
+	// 			ActingUserID: params.commandArgs.UserId,
+	// 		},
+	// 		api.SessionToken(params.commandArgs.Session.Token),
+	// 		&api.InProvisionApp{
+	// 			Manifest: manifest,
+	// 			Force:    true,
+	// 		},
+	// 	)
+	// 	if err != nil {
+	// 		return errorOut(params, err)
+	// 	}
 
-// 	conf := s.api.Configurator.GetConfig()
+	// 	conf := s.api.Configurator.GetConfig()
 
-// 	// Finish the installation when the Dialog is submitted, see
-// 	// <plugin>/http/dialog/install.go
-// 	err = s.api.Mattermost.Frontend.OpenInteractiveDialog(
-// 		dialog.NewInstallAppDialog(manifest, "", conf.PluginURL, params.commandArgs))
-// 	if err != nil {
-// 		return errorOut(params, errors.Wrap(err, "couldn't open an interactive dialog"))
-// 	}
+	// 	// Finish the installation when the Dialog is submitted, see
+	// 	// <plugin>/http/dialog/install.go
+	// 	err = s.api.Mattermost.Frontend.OpenInteractiveDialog(
+	// 		dialog.NewInstallAppDialog(manifest, "", conf.PluginURL, params.commandArgs))
+	// 	if err != nil {
+	// 		return errorOut(params, errors.Wrap(err, "couldn't open an interactive dialog"))
+	// 	}
 
-// 	team, err := s.api.Mattermost.Team.Get(params.commandArgs.TeamId)
-// 	if err != nil {
-// 		return errorOut(params, err)
-// 	}
+	// 	team, err := s.api.Mattermost.Team.Get(params.commandArgs.TeamId)
+	// 	if err != nil {
+	// 		return errorOut(params, err)
+	// 	}
+	return nil
+}
 
 // 	return &model.CommandResponse{
 // 		GotoLocation: params.commandArgs.SiteURL + "/" + team.Name + "/messages/@" + app.BotUsername,

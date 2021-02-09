@@ -7,6 +7,7 @@ package mock_api
 import (
 	gomock "github.com/golang/mock/gomock"
 	api "github.com/mattermost/mattermost-plugin-apps/server/api"
+	http "net/http"
 	reflect "reflect"
 )
 
@@ -34,11 +35,12 @@ func (m *MockProxy) EXPECT() *MockProxyMockRecorder {
 }
 
 // Call mocks base method
-func (m *MockProxy) Call(arg0 api.SessionToken, arg1 *api.Call) *api.CallResponse {
+func (m *MockProxy) Call(arg0 string, arg1 *api.Call) (*api.Call, *api.CallResponse) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Call", arg0, arg1)
-	ret0, _ := ret[0].(*api.CallResponse)
-	return ret0
+	ret0, _ := ret[0].(*api.Call)
+	ret1, _ := ret[1].(*api.CallResponse)
+	return ret0, ret1
 }
 
 // Call indicates an expected call of Call
@@ -60,6 +62,18 @@ func (m *MockProxy) GetBindings(arg0 *api.Context) ([]*api.Binding, error) {
 func (mr *MockProxyMockRecorder) GetBindings(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBindings", reflect.TypeOf((*MockProxy)(nil).GetBindings), arg0)
+}
+
+// HandleOAuth mocks base method
+func (m *MockProxy) HandleOAuth(arg0 http.ResponseWriter, arg1 *http.Request) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HandleOAuth", arg0, arg1)
+}
+
+// HandleOAuth indicates an expected call of HandleOAuth
+func (mr *MockProxyMockRecorder) HandleOAuth(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleOAuth", reflect.TypeOf((*MockProxy)(nil).HandleOAuth), arg0, arg1)
 }
 
 // Notify mocks base method
@@ -86,4 +100,19 @@ func (m *MockProxy) ProvisionBuiltIn(arg0 api.AppID, arg1 api.Upstream) {
 func (mr *MockProxyMockRecorder) ProvisionBuiltIn(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProvisionBuiltIn", reflect.TypeOf((*MockProxy)(nil).ProvisionBuiltIn), arg0, arg1)
+}
+
+// StartOAuthConnect mocks base method
+func (m *MockProxy) StartOAuthConnect(arg0 string, arg1 api.AppID, arg2 *api.Call) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartOAuthConnect", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StartOAuthConnect indicates an expected call of StartOAuthConnect
+func (mr *MockProxyMockRecorder) StartOAuthConnect(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartOAuthConnect", reflect.TypeOf((*MockProxy)(nil).StartOAuthConnect), arg0, arg1, arg2)
 }

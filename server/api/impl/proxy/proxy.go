@@ -42,7 +42,7 @@ func NewProxy(mm *pluginapi.Client, awsClient *aws.Client, conf api.Configurator
 	}
 }
 
-func (p *Proxy) Call(sessionToken api.SessionToken, call *api.Call) (*api.Call, *api.CallResponse) {
+func (p *Proxy) Call(adminAccessToken string, call *api.Call) (*api.Call, *api.CallResponse) {
 	fmt.Printf("<><> Call 1: %s %q\n", call.URL, call.Type)
 	conf := p.conf.GetConfig()
 	app, err := p.store.LoadApp(call.Context.AppID)
@@ -51,7 +51,7 @@ func (p *Proxy) Call(sessionToken api.SessionToken, call *api.Call) (*api.Call, 
 	}
 
 	oauth := p.newMattermostOAuthenticator(app)
-	call, err = p.expandCall(call, app, sessionToken, oauth, nil)
+	call, err = p.expandCall(call, app, adminAccessToken, oauth, nil)
 	if err == errOAuthRequired {
 		connectURL := oauth.GetConnectURL()
 		fmt.Printf("<><> Call 2: connectURL: %q, %v\n", connectURL, err)

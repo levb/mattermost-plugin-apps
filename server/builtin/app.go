@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
-	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 	"github.com/pkg/errors"
 )
 
@@ -33,25 +32,27 @@ const (
 	fieldExampleApp         = "example"
 	fieldManifestURL        = "manifest_url"
 	fieldRequireUserConsent = "require_consent"
+	fieldSecret             = "secret"
 )
 
 const (
-	flagUserID             = "user"
 	flagAppID              = "app"
 	flagExampleApp         = "example"
 	flagManifestURL        = "manifest"
 	flagRequireUserConsent = "require-consent"
+	flagSecret             = "secret"
+	flagUserID             = "user"
 )
 
 const (
-	PathConnect       = "/connect"
-	PathDebugBindings = "/debug-bindings"
-	PathDebugClean    = "/debug-clean"
-	PathDebugInstall  = "/debug-install"
-	PathInstallApp    = "/install-app"
-	PathDisconnect    = "/disconnect"
-	PathInfo          = "/info"
-	PathList          = "/list"
+	PathConnect           = "/connect"
+	PathDebugBindings     = "/debug-bindings"
+	PathDebugClean        = "/debug-clean"
+	PathInstallApp        = "/install-app"
+	PathInstallAppCommand = "/install-app-command"
+	PathDisconnect        = "/disconnect"
+	PathInfo              = "/info"
+	PathList              = "/list"
 )
 
 type App struct {
@@ -89,18 +90,24 @@ func (a *App) Roundtrip(c *api.Call) (io.ReadCloser, error) {
 	switch c.URL {
 	case api.BindingsPath:
 		cr = a.funcGetBindings(c)
+
 	case PathInfo:
 		cr = simpleFunc(a.infoForm, a.info)(c)
 	case PathList:
 		cr = simpleFunc(a.listForm, a.list)(c)
+	case PathDebugClean:
+		cr = simpleFunc(nil, a.clean)(c)
+
 	case PathConnect:
 		cr = simpleFunc(a.connectForm, a.connect)(c)
 	case PathDisconnect:
 		cr = simpleFunc(a.connectForm, a.disconnect)(c)
-	case PathDebugClean:
-		cr = simpleFunc(nil, a.clean)(c)
-	case PathDebugInstall:
-		cr = simpleFunc(a.debugInstallForm, a.debugInstall)(c)
+
+	case PathInstallAppCommand:
+		cr = simpleFunc(a.installAppCommandForm, a.installAppCommand)(c)
+	case PathInstallApp:
+		cr = simpleFunc(nil, a.installApp)(c)
+
 	default:
 		return nil, errors.Errorf("%s is not found", c.URL)
 	}
@@ -116,8 +123,9 @@ func (a *App) OneWay(call *api.Call) error {
 	return nil
 }
 
-func simpleFunc(formf func(*api.Call) (*api.Form, error),
-	submitf func(*api.Call) (md.MD, error)) func(call *api.Call) *api.CallResponse {
+func simpleFunc(
+	formf func(*api.Call) (*api.Form, error),
+	submitf func(*api.Call) *api.CallResponse) func(call *api.Call) *api.CallResponse {
 	return func(call *api.Call) *api.CallResponse {
 		switch call.Type {
 		case api.CallTypeForm:
@@ -135,8 +143,7 @@ func simpleFunc(formf func(*api.Call) (*api.Form, error),
 			}
 
 		case api.CallTypeSubmit:
-			txt, err := submitf(call)
-			return api.NewCallResponse(txt, nil, err)
+			return submitf(call)
 
 		default:
 			return api.NewErrorCallResponse(errors.New("not supported"))

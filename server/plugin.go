@@ -21,11 +21,9 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/proxy"
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/store"
 	"github.com/mattermost/mattermost-plugin-apps/server/builtin"
-	"github.com/mattermost/mattermost-plugin-apps/server/command"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/builtin_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/http_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/http"
-	"github.com/mattermost/mattermost-plugin-apps/server/http/dialog"
 	"github.com/mattermost/mattermost-plugin-apps/server/http/oauth"
 	"github.com/mattermost/mattermost-plugin-apps/server/http/restapi"
 )
@@ -34,10 +32,9 @@ type Plugin struct {
 	plugin.MattermostPlugin
 	*api.BuildConfig
 
-	mm      *pluginapi.Client
-	api     *api.Service
-	command command.Service
-	http    http.Service
+	mm   *pluginapi.Client
+	api  *api.Service
+	http http.Service
 }
 
 func NewPlugin(buildConfig *api.BuildConfig) *Plugin {
@@ -84,16 +81,11 @@ func (p *Plugin) OnActivate() error {
 	proxy.ProvisionBuiltIn(builtin_hello.AppID, builtin_hello.New(p.api))
 
 	p.http = http.NewService(mux.NewRouter(), p.api,
-		dialog.Init,
 		oauth.Init,
 		restapi.Init,
 		http_hello.Init,
 	)
 
-	p.command, err = command.MakeService(p.api)
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize own command handling")
-	}
 	return nil
 }
 
@@ -106,11 +98,6 @@ func (p *Plugin) OnConfigurationChange() error {
 	stored := api.StoredConfig{}
 	_ = p.mm.Configuration.LoadPluginConfiguration(&stored)
 	return p.api.Configurator.RefreshConfig(&stored)
-}
-
-func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
-	resp, _ := p.command.ExecuteCommand(c, args)
-	return resp, nil
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w gohttp.ResponseWriter, req *gohttp.Request) {

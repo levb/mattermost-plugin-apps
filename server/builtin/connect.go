@@ -26,18 +26,20 @@ func (a *App) connectForm(c *api.Call) (*api.Form, error) {
 	}, nil
 }
 
-func (a *App) connect(call *api.Call) (md.MD, error) {
+func (a *App) connect(call *api.Call) *api.CallResponse {
 	appID := api.AppID(call.GetStringValue(fieldAppID, ""))
 	connectURL, err := a.API.Proxy.StartOAuthConnect(call.Context.ActingUserID, appID, call)
 	if err != nil {
-		return "", err
+		return api.NewCallResponse("", nil, err)
 	}
-	return md.Markdownf("Click [here](%s) to continue", connectURL), nil
+	txt := md.Markdownf("Click [here](%s) to continue", connectURL)
+	return api.NewCallResponse(txt, nil, nil)
 }
 
-func (a *App) disconnect(call *api.Call) (md.MD, error) {
+func (a *App) disconnect(call *api.Call) *api.CallResponse {
 	appID := api.AppID(call.GetStringValue(fieldAppID, ""))
-	return md.Markdownf("TODO: disconnect %s", appID), nil
+	txt := md.Markdownf("TODO: disconnect %s", appID)
+	return api.NewCallResponse(txt, nil, nil)
 }
 
 func (a *App) getAppOptions(apps []*api.App) []api.SelectOption {

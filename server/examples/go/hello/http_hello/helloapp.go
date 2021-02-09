@@ -49,27 +49,30 @@ func Init(router *mux.Router, appsService *api.Service) {
 	handle(r, hello.PathPostAsUser, h.PostAsUser)
 }
 
+func Manifest(conf api.Config) *api.Manifest {
+	return &api.Manifest{
+		AppID:       AppID,
+		Type:        api.AppTypeHTTP,
+		DisplayName: AppDisplayName,
+		Description: AppDescription,
+		HTTPRootURL: appURL(conf, ""),
+		RequestedPermissions: api.Permissions{
+			api.PermissionUserJoinedChannelNotification,
+			api.PermissionActAsUser,
+			api.PermissionActAsBot,
+		},
+		RequestedLocations: api.Locations{
+			api.LocationChannelHeader,
+			api.LocationPostMenu,
+			api.LocationCommand,
+			api.LocationInPost,
+		},
+		HomepageURL: appURL(conf, "/"),
+	}
+}
+
 func (h *helloapp) handleManifest(w http.ResponseWriter, req *http.Request) {
-	httputils.WriteJSON(w,
-		api.Manifest{
-			AppID:       AppID,
-			Type:        api.AppTypeHTTP,
-			DisplayName: AppDisplayName,
-			Description: AppDescription,
-			HTTPRootURL: h.appURL(""),
-			RequestedPermissions: api.Permissions{
-				api.PermissionUserJoinedChannelNotification,
-				api.PermissionActAsUser,
-				api.PermissionActAsBot,
-			},
-			RequestedLocations: api.Locations{
-				api.LocationChannelHeader,
-				api.LocationPostMenu,
-				api.LocationCommand,
-				api.LocationInPost,
-			},
-			HomepageURL: h.appURL("/"),
-		})
+	httputils.WriteJSON(w, Manifest(h.API.Configurator.GetConfig()))
 }
 
 func (h *helloapp) Install(call *api.Call) *api.CallResponse {
@@ -117,7 +120,6 @@ func checkJWT(req *http.Request) (*api.JWTClaims, error) {
 	return &claims, nil
 }
 
-func (h *helloapp) appURL(path string) string {
-	conf := h.API.Configurator.GetConfig()
+func appURL(conf api.Config, path string) string {
 	return conf.PluginURL + api.HelloHTTPPath + path
 }

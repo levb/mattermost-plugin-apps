@@ -17,10 +17,10 @@ func (a *App) listForm(c *api.Call) (*api.Form, error) {
 	}, nil
 }
 
-func (a *App) list(call *api.Call) (md.MD, error) {
+func (a *App) list(call *api.Call) *api.CallResponse {
 	apps, err := a.API.Admin.ListApps()
 	if err != nil {
-		return "", err
+		return api.NewCallResponse("", nil, err)
 	}
 
 	// txt := md.MD(``)
@@ -33,5 +33,5 @@ func (a *App) list(call *api.Call) (md.MD, error) {
 			app.Manifest.AppID, app.Manifest.Type, app.OAuth2ClientID, app.BotUserID, app.GrantedLocations, app.GrantedPermissions)
 	}
 
-	return txt, nil
+	return api.NewCallResponse(txt, nil, nil)
 }

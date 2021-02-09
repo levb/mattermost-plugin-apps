@@ -29,7 +29,7 @@ func (a *App) bindings(call *api.Call) []*api.Binding {
 	}
 
 	adminCommands := []*api.Binding{
-		simple(CommandInstall, PathInstallApp, "[flags]", "Install an App to this Mattermost instance"),
+		simple(CommandInstall, PathInstallAppCommand, "[flags]", "Install an App to this Mattermost instance"),
 		{
 			Label:       CommandDebug,
 			Location:    CommandDebug,
