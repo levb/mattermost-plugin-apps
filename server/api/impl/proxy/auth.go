@@ -12,11 +12,11 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/oauther"
 )
 
-func (p *Proxy) newMattermostOAuthenticator(app *api.App) oauther.OAuther {
+func (p *Proxy) newMattermostOAuthenticator(app *apps.App) oauther.OAuther {
 	return oauther.NewFromClient(p.mm,
 		*p.newMattermostOAuthConfig(app),
 		p.finishMattermostOAuthConnect,
@@ -25,7 +25,7 @@ func (p *Proxy) newMattermostOAuthenticator(app *api.App) oauther.OAuther {
 		oauther.StorePrefix("mm_oauth_"))
 }
 
-func (p *Proxy) newMattermostOAuthConfig(app *api.App) *oauth2.Config {
+func (p *Proxy) newMattermostOAuthConfig(app *apps.App) *oauth2.Config {
 	config := p.conf.GetConfig()
 	return &oauth2.Config{
 		ClientID:     app.OAuth2ClientID,
@@ -47,9 +47,9 @@ func (p *Proxy) HandleOAuth(w http.ResponseWriter, req *http.Request) {
 		httputils.WriteBadRequestError(w, errors.New("invalid path, can not extract AppID"))
 		return
 	}
-	appID := api.AppID(ss[len(ss)-2])
+	appID := apps.AppID(ss[len(ss)-2])
 
-	app, err := p.store.LoadApp(appID)
+	app, err := p.store.App().Get(appID)
 	if err != nil {
 		httputils.WriteInternalServerError(w, err)
 		return
@@ -58,10 +58,10 @@ func (p *Proxy) HandleOAuth(w http.ResponseWriter, req *http.Request) {
 	p.newMattermostOAuthenticator(app).ServeHTTP(w, req)
 }
 
-func (p *Proxy) StartOAuthConnect(userID string, appID api.AppID, callOnComplete *api.Call) (string, error) {
+func (p *Proxy) StartOAuthConnect(userID string, appID apps.AppID, callOnComplete *apps.Call) (string, error) {
 	fmt.Printf("<><> startMattermostOAuthConnect 1: %v\n", userID)
 
-	app, err := p.store.LoadApp(appID)
+	app, err := p.store.App().Get(appID)
 	if err != nil {
 		return "", err
 	}
@@ -83,7 +83,7 @@ func (p *Proxy) StartOAuthConnect(userID string, appID api.AppID, callOnComplete
 }
 
 func (p *Proxy) finishMattermostOAuthConnect(userID string, token oauth2.Token, payload []byte) {
-	call, err := api.UnmarshalCallFromData(payload)
+	call, err := apps.UnmarshalCallFromData(payload)
 	if err != nil {
 		return
 	}

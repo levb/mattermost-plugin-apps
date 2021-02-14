@@ -4,20 +4,21 @@
 package builtin
 
 import (
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func (a *App) infoForm(c *api.Call) (*api.Form, error) {
-	return &api.Form{
+func (a *App) infoForm(c *apps.Call) (*apps.Form, error) {
+	return &apps.Form{
 		Title: "Apps proxy info",
-		Call: &api.Call{
+		Call: &apps.Call{
 			URL: PathInfo,
 		},
 	}, nil
 }
 
-func (a *App) info(call *api.Call) *api.CallResponse {
+func (a *App) info(call *apps.Call) *apps.CallResponse {
 	conf := a.API.Configurator.GetConfig()
 	resp := md.Markdownf("Mattermost Cloud Apps plugin version: %s, "+
 		"[%s](https://github.com/mattermost/%s/commit/%s), built %s\n",
@@ -27,5 +28,5 @@ func (a *App) info(call *api.Call) *api.CallResponse {
 		conf.BuildHash,
 		conf.BuildDate)
 
-	return api.NewCallResponse(resp, nil, nil)
+	return apps.NewCallResponse(resp, nil, nil)
 }

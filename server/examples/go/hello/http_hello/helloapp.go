@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/proxy"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello"
@@ -39,8 +40,8 @@ func Init(router *mux.Router, appsService *api.Service) {
 	r := router.PathPrefix(api.HelloHTTPPath).Subrouter()
 	r.HandleFunc(PathManifest, h.handleManifest).Methods("GET")
 
-	handle(r, api.DefaultInstallCallPath, h.Install)
-	handle(r, api.DefaultBindingsCallPath, h.GetBindings)
+	handle(r, apps.DefaultInstallCallPath, h.Install)
+	handle(r, apps.DefaultBindingsCallPath, h.GetBindings)
 	handle(r, hello.PathSendSurvey, h.SendSurvey)
 	handle(r, hello.PathSendSurveyModal, h.SendSurveyModal)
 	handle(r, hello.PathSendSurveyCommandToModal, h.SendSurveyCommandToModal)
@@ -49,23 +50,23 @@ func Init(router *mux.Router, appsService *api.Service) {
 	handle(r, hello.PathPostAsUser, h.PostAsUser)
 }
 
-func Manifest(conf api.Config) *api.Manifest {
-	return &api.Manifest{
+func Manifest(conf api.Config) *apps.Manifest {
+	return &apps.Manifest{
 		AppID:       AppID,
-		Type:        api.AppTypeHTTP,
+		Type:        apps.AppTypeHTTP,
 		DisplayName: AppDisplayName,
 		Description: AppDescription,
 		HTTPRootURL: appURL(conf, ""),
-		RequestedPermissions: api.Permissions{
-			api.PermissionUserJoinedChannelNotification,
-			api.PermissionActAsUser,
-			api.PermissionActAsBot,
+		RequestedPermissions: apps.Permissions{
+			apps.PermissionUserJoinedChannelNotification,
+			apps.PermissionActAsUser,
+			apps.PermissionActAsBot,
 		},
-		RequestedLocations: api.Locations{
-			api.LocationChannelHeader,
-			api.LocationPostMenu,
-			api.LocationCommand,
-			api.LocationInPost,
+		RequestedLocations: apps.Locations{
+			apps.LocationChannelHeader,
+			apps.LocationPostMenu,
+			apps.LocationCommand,
+			apps.LocationInPost,
 		},
 		HomepageURL: appURL(conf, "/"),
 	}
@@ -75,11 +76,11 @@ func (h *helloapp) handleManifest(w http.ResponseWriter, req *http.Request) {
 	httputils.WriteJSON(w, Manifest(h.API.Configurator.GetConfig()))
 }
 
-func (h *helloapp) Install(call *api.Call) *api.CallResponse {
+func (h *helloapp) Install(call *apps.Call) *apps.CallResponse {
 	return h.HelloApp.Install(AppID, AppDisplayName, call)
 }
 
-func handle(r *mux.Router, path string, h func(*api.Call) *api.CallResponse) {
+func handle(r *mux.Router, path string, h func(*apps.Call) *apps.CallResponse) {
 	r.HandleFunc(path,
 		func(w http.ResponseWriter, req *http.Request) {
 			_, err := checkJWT(req)
@@ -88,7 +89,7 @@ func handle(r *mux.Router, path string, h func(*api.Call) *api.CallResponse) {
 				return
 			}
 
-			call, err := api.UnmarshalCallFromReader(req.Body)
+			call, err := apps.UnmarshalCallFromReader(req.Body)
 			if err != nil {
 				proxy.WriteCallError(w, http.StatusInternalServerError, err)
 				return

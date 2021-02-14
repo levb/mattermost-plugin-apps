@@ -1,41 +1,41 @@
 package builtin
 
 import (
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 )
 
-func (a *App) funcGetBindings(call *api.Call) *api.CallResponse {
-	return api.NewCallResponse("", a.bindings(call), nil)
+func (a *App) funcGetBindings(call *apps.Call) *apps.CallResponse {
+	return apps.NewCallResponse("", a.bindings(call), nil)
 }
 
-func (a *App) bindings(call *api.Call) []*api.Binding {
-	simple := func(label, path, hint, descr string) *api.Binding {
-		return &api.Binding{
+func (a *App) bindings(call *apps.Call) []*apps.Binding {
+	simple := func(label, path, hint, descr string) *apps.Binding {
+		return &apps.Binding{
 			Label:       label,
-			Location:    api.Location(label),
+			Location:    apps.Location(label),
 			Hint:        hint,
 			Description: descr,
-			Call: &api.Call{
+			Call: &apps.Call{
 				URL: path,
 			},
 		}
 	}
 
-	commands := []*api.Binding{
+	commands := []*apps.Binding{
 		simple(CommandInfo, PathInfo, "", "displays Apps plugin info"),
 		simple(CommandList, PathList, "", "displays Apps plugin info"),
 		simple(CommandConnect, PathConnect, "[AppID]", "Connect an App to your Mattermost account"),
 		simple(CommandDisconnect, PathDisconnect, "[AppID]", "Disconnect an App from your Mattermost account"),
 	}
 
-	adminCommands := []*api.Binding{
+	adminCommands := []*apps.Binding{
 		simple(CommandInstall, PathInstallAppCommand, "[flags]", "Install an App to this Mattermost instance"),
 		{
 			Label:       CommandDebug,
 			Location:    CommandDebug,
 			Hint:        "clean | view",
 			Description: "debugging commands",
-			Bindings: []*api.Binding{
+			Bindings: []*apps.Binding{
 				simple(CommandClean, PathDebugClean, "", "clean the Apps KV store and config"),
 				// simple(CommandInstall, PathDebugInstall, "", "install apps"),
 				simple(CommandBindings, PathDebugBindings, "", "view bindings"),
@@ -48,9 +48,9 @@ func (a *App) bindings(call *api.Call) []*api.Binding {
 		commands = append(commands, adminCommands...)
 	}
 
-	return []*api.Binding{
+	return []*apps.Binding{
 		{
-			Location: api.LocationCommand,
+			Location: apps.LocationCommand,
 			Bindings: commands,
 		},
 	}

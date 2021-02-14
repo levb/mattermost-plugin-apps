@@ -8,24 +8,25 @@ import (
 
 	"github.com/mattermost/mattermost-server/v5/model"
 
+	"github.com/mattermost/mattermost-plugin-apps/apps"
+	"github.com/mattermost/mattermost-plugin-apps/apps/mmclient"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
-	"github.com/mattermost/mattermost-plugin-apps/server/examples"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func (h *HelloApp) SendSurvey(call *api.Call) *api.CallResponse {
+func (h *HelloApp) SendSurvey(call *apps.Call) *apps.CallResponse {
 	switch call.Type {
-	case api.CallTypeForm:
+	case apps.CallTypeForm:
 		return NewSendSurveyFormResponse(call)
 
-	case api.CallTypeSubmit:
+	case apps.CallTypeSubmit:
 		txt, err := h.sendSurvey(call)
-		return api.NewCallResponse(txt, nil, err)
+		return apps.NewCallResponse(txt, nil, err)
 
-	case api.CallTypeLookup:
-		return &api.CallResponse{
+	case apps.CallTypeLookup:
+		return &apps.CallResponse{
 			Data: map[string]interface{}{
-				"items": []*api.SelectOption{
+				"items": []*apps.SelectOption{
 					{
 						Label: "Option 1",
 						Value: "option1",
@@ -35,15 +36,15 @@ func (h *HelloApp) SendSurvey(call *api.Call) *api.CallResponse {
 		}
 
 	default:
-		return api.NewErrorCallResponse(errors.New("not supported"))
+		return apps.NewErrorCallResponse(errors.New("not supported"))
 	}
 }
 
-func (h *HelloApp) SendSurveyModal(c *api.Call) *api.CallResponse {
+func (h *HelloApp) SendSurveyModal(c *apps.Call) *apps.CallResponse {
 	return NewSendSurveyFormResponse(c)
 }
 
-func (h *HelloApp) SendSurveyCommandToModal(c *api.Call) *api.CallResponse {
+func (h *HelloApp) SendSurveyCommandToModal(c *apps.Call) *apps.CallResponse {
 	return NewSendSurveyPartialFormResponse(c)
 }
 
@@ -53,7 +54,7 @@ type SurveyFormSubmission struct {
 	Other   map[string]interface{} `json:"other"`
 }
 
-func extractSurveyFormValues(c *api.Call) SurveyFormSubmission {
+func extractSurveyFormValues(c *apps.Call) SurveyFormSubmission {
 	message := ""
 	userID := ""
 	var other map[string]interface{} = nil
@@ -63,7 +64,7 @@ func extractSurveyFormValues(c *api.Call) SurveyFormSubmission {
 
 	topValues := c.Values
 	formValues := c.Values
-	if c.Type == api.CallTypeForm && topValues != nil {
+	if c.Type == apps.CallTypeForm && topValues != nil {
 		formValues, _ = topValues["values"].(map[string]interface{})
 	}
 
@@ -85,7 +86,7 @@ func extractSurveyFormValues(c *api.Call) SurveyFormSubmission {
 	}
 }
 
-func NewSendSurveyFormResponse(c *api.Call) *api.CallResponse {
+func NewSendSurveyFormResponse(c *apps.Call) *apps.CallResponse {
 	submission := extractSurveyFormValues(c)
 	name, _ := c.Values["name"].(string)
 
@@ -93,17 +94,17 @@ func NewSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 		submission.Message = fmt.Sprintf("%s Now sending to %s.", submission.Message, submission.UserID)
 	}
 
-	return &api.CallResponse{
-		Type: api.CallResponseTypeForm,
-		Form: &api.Form{
+	return &apps.CallResponse{
+		Type: apps.CallResponseTypeForm,
+		Form: &apps.Form{
 			Title:  "Send a survey to user",
 			Header: "Message modal form header",
 			Footer: "Message modal form footer",
-			Call:   api.MakeCall(PathSendSurvey),
-			Fields: []*api.Field{
+			Call:   apps.MakeCall(PathSendSurvey),
+			Fields: []*apps.Field{
 				{
 					Name:                 fieldUserID,
-					Type:                 api.FieldTypeUser,
+					Type:                 apps.FieldTypeUser,
 					Description:          "User to send the survey to",
 					Label:                "user",
 					ModalLabel:           "User",
@@ -113,7 +114,7 @@ func NewSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 					SelectRefresh:        true,
 				}, {
 					Name:             "other",
-					Type:             api.FieldTypeDynamicSelect,
+					Type:             apps.FieldTypeDynamicSelect,
 					Description:      "Some values",
 					Label:            "other",
 					AutocompleteHint: "Pick one",
@@ -121,7 +122,7 @@ func NewSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 					Value:            submission.Other,
 				}, {
 					Name:             fieldMessage,
-					Type:             api.FieldTypeText,
+					Type:             apps.FieldTypeText,
 					Description:      "Text to ask the user about",
 					IsRequired:       true,
 					Label:            "message",
@@ -137,22 +138,22 @@ func NewSendSurveyFormResponse(c *api.Call) *api.CallResponse {
 	}
 }
 
-func NewSendSurveyPartialFormResponse(c *api.Call) *api.CallResponse {
-	if c.Type == api.CallTypeSubmit {
+func NewSendSurveyPartialFormResponse(c *apps.Call) *apps.CallResponse {
+	if c.Type == apps.CallTypeSubmit {
 		return NewSendSurveyFormResponse(c)
 	}
 
-	return &api.CallResponse{
-		Type: api.CallResponseTypeForm,
-		Form: &api.Form{
+	return &apps.CallResponse{
+		Type: apps.CallResponseTypeForm,
+		Form: &apps.Form{
 			Title:  "Send a survey to user",
 			Header: "Message modal form header",
 			Footer: "Message modal form footer",
-			Call:   api.MakeCall(PathSendSurveyCommandToModal),
-			Fields: []*api.Field{
+			Call:   apps.MakeCall(PathSendSurveyCommandToModal),
+			Fields: []*apps.Field{
 				{
 					Name:             fieldMessage,
-					Type:             api.FieldTypeText,
+					Type:             apps.FieldTypeText,
 					Description:      "Text to ask the user about",
 					IsRequired:       true,
 					Label:            "message",
@@ -168,8 +169,8 @@ func NewSendSurveyPartialFormResponse(c *api.Call) *api.CallResponse {
 	}
 }
 
-func (h *HelloApp) sendSurvey(c *api.Call) (md.MD, error) {
-	bot := examples.AsBot(c.Context)
+func (h *HelloApp) sendSurvey(c *apps.Call) (md.MD, error) {
+	bot := mmclient.AsBot(c.Context)
 	userID := c.GetStringValue(fieldUserID, c.Context.ActingUserID)
 
 	// TODO this should be done with expanding mentions, make a ticket
@@ -193,11 +194,11 @@ func (h *HelloApp) sendSurvey(c *api.Call) (md.MD, error) {
 	return "Successfully sent survey", nil
 }
 
-func sendSurvey(bot examples.Client, userID, message string) error {
+func sendSurvey(bot *mmclient.Client, userID, message string) error {
 	p := &model.Post{
 		Message: "Please respond to this survey: " + message,
 	}
-	p.AddProp(api.PropAppBindings, []*api.Binding{
+	p.AddProp(api.PropAppBindings, []*apps.Binding{
 		{
 			Location: "survey",
 			Form:     NewSurveyForm(message),

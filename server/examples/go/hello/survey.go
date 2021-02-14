@@ -1,35 +1,35 @@
 package hello
 
 import (
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/pkg/errors"
 )
 
-func (h *HelloApp) Survey(call *api.Call) *api.CallResponse {
+func (h *HelloApp) Survey(call *apps.Call) *apps.CallResponse {
 	switch call.Type {
-	case api.CallTypeForm:
+	case apps.CallTypeForm:
 		return newSurveyFormResponse(call)
 
-	case api.CallTypeSubmit:
+	case apps.CallTypeSubmit:
 		err := h.processSurvey(call)
-		return api.NewCallResponse("ok", nil, err)
+		return apps.NewCallResponse("ok", nil, err)
 
 	default:
-		return api.NewErrorCallResponse(errors.New("not supported"))
+		return apps.NewErrorCallResponse(errors.New("not supported"))
 	}
 }
 
-func NewSurveyForm(message string) *api.Form {
-	return &api.Form{
+func NewSurveyForm(message string) *apps.Form {
+	return &apps.Form{
 		Title:         "Emotional response survey",
 		Header:        message,
 		Footer:        "Let the world know!",
 		SubmitButtons: fieldResponse,
-		Fields: []*api.Field{
+		Fields: []*apps.Field{
 			{
 				Name: fieldResponse,
-				Type: api.FieldTypeStaticSelect,
-				SelectStaticOptions: []api.SelectOption{
+				Type: apps.FieldTypeStaticSelect,
+				SelectStaticOptions: []apps.SelectOption{
 					{Label: "Like", Value: "like"},
 					{Label: "Dislike", Value: "dislike"},
 				},
@@ -38,15 +38,15 @@ func NewSurveyForm(message string) *api.Form {
 	}
 }
 
-func newSurveyFormResponse(c *api.Call) *api.CallResponse {
+func newSurveyFormResponse(c *apps.Call) *apps.CallResponse {
 	message := c.GetStringValue(fieldMessage, "default hello message")
-	return &api.CallResponse{
-		Type: api.CallResponseTypeForm,
+	return &apps.CallResponse{
+		Type: apps.CallResponseTypeForm,
 		Form: NewSurveyForm(message),
 	}
 }
 
-func (h *HelloApp) processSurvey(c *api.Call) error {
+func (h *HelloApp) processSurvey(c *apps.Call) error {
 	// TODO post something; for embedded form - what do we do?
 	return nil
 }

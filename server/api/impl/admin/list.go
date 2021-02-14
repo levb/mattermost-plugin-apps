@@ -3,10 +3,8 @@
 
 package admin
 
-import (
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
-)
+import "github.com/mattermost/mattermost-plugin-apps/apps"
 
-func (adm *Admin) ListApps() ([]*api.App, error) {
-	return adm.store.ListApps(), nil
+func (adm *Admin) ListApps() ([]*apps.App, error) {
+	return adm.store.App().GetAll(), nil
 }

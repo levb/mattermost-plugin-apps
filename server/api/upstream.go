@@ -7,14 +7,16 @@ import (
 	"io"
 
 	"github.com/dgrijalva/jwt-go"
+
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 )
 
 const OutgoingAuthHeader = "Mattermost-App-Authorization"
 
 // Upstream should be abbreviated as `up`.
 type Upstream interface {
-	Roundtrip(call *Call) (io.ReadCloser, error)
-	OneWay(call *Call) error
+	Roundtrip(call *apps.Call) (io.ReadCloser, error)
+	OneWay(call *apps.Call) error
 }
 
 type JWTClaims struct {

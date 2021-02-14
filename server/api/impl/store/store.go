@@ -5,24 +5,49 @@ package store
 
 import (
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
+
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 )
 
 const prefixSubs = "sub_"
 
 type Store struct {
-	builtinInstalledApps map[api.AppID]*api.App
+	builtinInstalledApps map[apps.AppID]*apps.App
 
-	mm   *pluginapi.Client
-	conf api.Configurator
+	mm     *pluginapi.Client
+	conf   api.Configurator
+	stores Stores
+}
+
+type Stores struct {
+	app      api.AppStore
+	sub      api.SubStore
+	manifest api.ManifestStore
 }
 
 var _ api.Store = (*Store)(nil)
 
-func NewStore(mm *pluginapi.Client, conf api.Configurator) *Store {
-	return &Store{
-		builtinInstalledApps: map[api.AppID]*api.App{},
+func New(mm *pluginapi.Client, conf api.Configurator) *Store {
+	store := &Store{
+		builtinInstalledApps: map[apps.AppID]*apps.App{},
 		mm:                   mm,
 		conf:                 conf,
 	}
+	store.stores.app = newAppStore(store)
+	store.stores.sub = newSubStore(store)
+	store.stores.manifest = newManifestStore()
+	return store
+}
+
+func (s *Store) App() api.AppStore {
+	return s.stores.app
+}
+
+func (s *Store) Sub() api.SubStore {
+	return s.stores.sub
+}
+
+func (s *Store) Manifest() api.ManifestStore {
+	return s.stores.manifest
 }

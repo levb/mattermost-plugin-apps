@@ -4,15 +4,16 @@
 package builtin
 
 import (
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func (a *App) clean(call *api.Call) *api.CallResponse {
+func (a *App) clean(call *apps.Call) *apps.CallResponse {
 	_ = a.API.Mattermost.KV.DeleteAll()
 	_ = a.API.Configurator.StoreConfig(&api.StoredConfig{})
 	txt := md.MD("Deleted all KV records and emptied the config.")
-	return api.NewCallResponse(txt, nil, nil)
+	return apps.NewCallResponse(txt, nil, nil)
 }
 
 // func (a *App) debugInstall(call *api.Call) (md.MD, error) {

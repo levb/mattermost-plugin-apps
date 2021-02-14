@@ -1,40 +1,40 @@
 package hello
 
 import (
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 )
 
-func (h *HelloApp) GetBindings(call *api.Call) *api.CallResponse {
-	return api.NewCallResponse("", bindings(call), nil)
+func (h *HelloApp) GetBindings(call *apps.Call) *apps.CallResponse {
+	return apps.NewCallResponse("", bindings(call), nil)
 }
 
-func bindings(call *api.Call) []*api.Binding {
-	post := api.MakeCall(PathPostAsUser)
-	post.Expand = &api.Expand{
-		ActingUserAccessToken: api.ExpandAll,
+func bindings(call *apps.Call) []*apps.Binding {
+	post := apps.MakeCall(PathPostAsUser)
+	post.Expand = &apps.Expand{
+		ActingUserAccessToken: apps.ExpandAll,
 	}
 
-	commandToModal := api.MakeCall(PathSendSurveyCommandToModal)
+	commandToModal := apps.MakeCall(PathSendSurveyCommandToModal)
 
-	justSend := api.MakeCall(PathSendSurvey)
+	justSend := apps.MakeCall(PathSendSurvey)
 
-	modalFromPost := api.MakeCall(PathSendSurveyModal)
-	modalFromPost.Expand = &api.Expand{Post: api.ExpandAll}
+	modalFromPost := apps.MakeCall(PathSendSurveyModal)
+	modalFromPost.Expand = &apps.Expand{Post: apps.ExpandAll}
 
-	channelHeaderBindings := []*api.Binding{
+	channelHeaderBindings := []*apps.Binding{
 		{
 			Location:    "send",
 			Label:       "Survey a user",
 			Icon:        "https://raw.githubusercontent.com/mattermost/mattermost-plugin-jira/master/assets/icon.svg",
 			Hint:        "Send survey to a user",
 			Description: "Send a customized emotional response survey to a user",
-			Call: &api.Call{
+			Call: &apps.Call{
 				URL: PathSendSurvey,
 			},
 		},
 	}
 
-	postMenuBindings := []*api.Binding{
+	postMenuBindings := []*apps.Binding{
 		{
 			Location:    "send-me",
 			Label:       "Survey myself",
@@ -52,7 +52,7 @@ func bindings(call *api.Call) []*api.Binding {
 	}
 
 	// TODO /Command binding is a placeholder, may not be final, test!
-	commandBindings := []*api.Binding{
+	commandBindings := []*apps.Binding{
 		{
 			Label:       "message",
 			Location:    "message",
@@ -70,28 +70,28 @@ func bindings(call *api.Call) []*api.Binding {
 			Location:    "manage",
 			Hint:        "subscribe | unsubscribe ",
 			Description: "manage channel subscriptions to greet new users",
-			Bindings: []*api.Binding{
+			Bindings: []*apps.Binding{
 				{
 					Label:       "subscribe",
 					Location:    "subscribe",
 					Hint:        "[--channel]",
 					Description: "subscribes a channel to greet new users",
-					Call:        api.MakeCall(PathSubscribeChannel, "mode", "on"),
+					Call:        apps.MakeCall(PathSubscribeChannel, "mode", "on"),
 				}, {
 					Label:       "unsubscribe",
 					Location:    "unsubscribe",
 					Hint:        "[--channel]",
 					Description: "unsubscribes a channel from greeting new users",
-					Call:        api.MakeCall(PathSubscribeChannel, "mode", "off"),
+					Call:        apps.MakeCall(PathSubscribeChannel, "mode", "off"),
 				},
 			},
 		},
 	}
 
 	// TODO /Command binding is a placeholder, may not be final, test!
-	connectedCommandBindings := []*api.Binding{}
+	connectedCommandBindings := []*apps.Binding{}
 	// if call.Context.ActingUserIsConnected {
-	connectedCommandBindings = []*api.Binding{
+	connectedCommandBindings = []*apps.Binding{
 		{
 			Label:         "post",
 			Location:      "post",
@@ -103,18 +103,18 @@ func bindings(call *api.Call) []*api.Binding {
 	}
 	// }
 
-	return []*api.Binding{
+	return []*apps.Binding{
 		{
-			Location: api.LocationCommand,
+			Location: apps.LocationCommand,
 			Bindings: append(commandBindings, connectedCommandBindings...),
 		},
 		{
 			// TODO make this a subscribe button, with a state (current subscription status)
-			Location: api.LocationChannelHeader,
+			Location: apps.LocationChannelHeader,
 			Bindings: channelHeaderBindings,
 		},
 		{
-			Location: api.LocationPostMenu,
+			Location: apps.LocationPostMenu,
 			Bindings: postMenuBindings,
 		},
 	}

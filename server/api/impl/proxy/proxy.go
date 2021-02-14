@@ -13,6 +13,7 @@ import (
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
 	"github.com/mattermost/mattermost-server/v5/model"
 
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/aws"
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/upstream"
@@ -23,7 +24,7 @@ import (
 type Proxy struct {
 	// Built-in Apps are linked in Go and invoked directly. The list is
 	// initialized on startup, and need not be synchronized.
-	builtinProvisionedApps map[api.AppID]api.Upstream
+	builtinProvisionedApps map[apps.AppID]api.Upstream
 
 	mm        *pluginapi.Client
 	conf      api.Configurator
@@ -42,12 +43,12 @@ func NewProxy(mm *pluginapi.Client, awsClient *aws.Client, conf api.Configurator
 	}
 }
 
-func (p *Proxy) Call(adminAccessToken string, call *api.Call) (*api.Call, *api.CallResponse) {
+func (p *Proxy) Call(adminAccessToken string, call *apps.Call) (*apps.Call, *apps.CallResponse) {
 	fmt.Printf("<><> Call 1: %s %q\n", call.URL, call.Type)
 	conf := p.conf.GetConfig()
-	app, err := p.store.LoadApp(call.Context.AppID)
+	app, err := p.store.App().Get(call.Context.AppID)
 	if err != nil {
-		return call, api.NewErrorCallResponse(err)
+		return call, apps.NewErrorCallResponse(err)
 	}
 
 	oauth := p.newMattermostOAuthenticator(app)
@@ -64,24 +65,24 @@ func (p *Proxy) Call(adminAccessToken string, call *api.Call) (*api.Call, *api.C
 		p.mm.Post.SendEphemeralPost(call.Context.ActingUserID, post)
 		err = p.mm.Post.DM(conf.BotUserID, call.Context.ActingUserID, post)
 		fmt.Printf("<><> Call 3: %v\n", err)
-		return call, &api.CallResponse{
-			Type:          api.CallResponseTypeNavigate,
+		return call, &apps.CallResponse{
+			Type:          apps.CallResponseTypeNavigate,
 			NavigateToURL: connectURL,
 		}
 	}
 	if err != nil {
-		return call, api.NewErrorCallResponse(err)
+		return call, apps.NewErrorCallResponse(err)
 	}
 
 	up, err := p.upstreamForApp(app)
 	if err != nil {
-		return call, api.NewErrorCallResponse(err)
+		return call, apps.NewErrorCallResponse(err)
 	}
 	cr := upstream.Call(up, call)
 	fmt.Printf("<><> Call 4: %s done: %q: %q %q\n", call.URL, cr.Type, cr.Markdown, cr.ErrorText)
 
 	// TODO: the user-agents do not yet support Navigate, so post messages with the URL
-	if cr.Type == api.CallResponseTypeNavigate {
+	if cr.Type == apps.CallResponseTypeNavigate {
 		post := &model.Post{
 			UserId:    conf.BotUserID,
 			ChannelId: call.Context.ChannelID,
@@ -93,20 +94,20 @@ func (p *Proxy) Call(adminAccessToken string, call *api.Call) (*api.Call, *api.C
 	return call, cr
 }
 
-func (p *Proxy) Notify(cc *api.Context, subj api.Subject) error {
-	subs, err := p.store.LoadSubs(subj, cc.TeamID, cc.ChannelID)
+func (p *Proxy) Notify(cc *apps.Context, subj apps.Subject) error {
+	subs, err := p.store.Sub().Get(subj, cc.TeamID, cc.ChannelID)
 	if err != nil {
 		return err
 	}
 
 	expandCache := &expandCache{}
 
-	notify := func(sub *api.Subscription) error {
+	notify := func(sub *apps.Subscription) error {
 		call := sub.Call
 		if call == nil {
 			return errors.New("nothing to call")
 		}
-		app, err := p.store.LoadApp(sub.AppID)
+		app, err := p.store.App().Get(sub.AppID)
 		if err != nil {
 			return err
 		}
@@ -137,15 +138,15 @@ func (p *Proxy) Notify(cc *api.Context, subj api.Subject) error {
 	return nil
 }
 
-func (p *Proxy) upstreamForApp(app *api.App) (api.Upstream, error) {
+func (p *Proxy) upstreamForApp(app *apps.App) (api.Upstream, error) {
 	switch app.Manifest.Type {
-	case api.AppTypeHTTP:
+	case apps.AppTypeHTTP:
 		return uphttp.NewUpstream(app), nil
 
-	case api.AppTypeAWSLambda:
+	case apps.AppTypeAWSLambda:
 		return upawslambda.NewUpstream(app, p.awsClient), nil
 
-	case api.AppTypeBuiltin:
+	case apps.AppTypeBuiltin:
 		if len(p.builtinProvisionedApps) == 0 {
 			return nil, errors.Errorf("builtin app not found: %s", app.Manifest.AppID)
 		}
@@ -160,9 +161,9 @@ func (p *Proxy) upstreamForApp(app *api.App) (api.Upstream, error) {
 	}
 }
 
-func (p *Proxy) ProvisionBuiltIn(appID api.AppID, up api.Upstream) {
+func (p *Proxy) ProvisionBuiltIn(appID apps.AppID, up api.Upstream) {
 	if p.builtinProvisionedApps == nil {
-		p.builtinProvisionedApps = map[api.AppID]api.Upstream{}
+		p.builtinProvisionedApps = map[apps.AppID]api.Upstream{}
 	}
 	p.builtinProvisionedApps[appID] = up
 }
@@ -170,5 +171,5 @@ func (p *Proxy) ProvisionBuiltIn(appID api.AppID, up api.Upstream) {
 func WriteCallError(w http.ResponseWriter, statusCode int, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(api.NewErrorCallResponse(err))
+	_ = json.NewEncoder(w).Encode(apps.NewErrorCallResponse(err))
 }

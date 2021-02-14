@@ -12,19 +12,23 @@ import (
 
 	"github.com/mattermost/mattermost-server/v5/model"
 
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/oauther"
 )
 
-func (adm *Admin) InstallApp(cc *api.Context, in *api.InInstallApp) (*api.App, md.MD, error) {
-	// TODO <><> check if acting user is a sysadmin
+func (adm *Admin) InstallApp(cc *apps.Context, in *apps.InInstallApp) (*apps.App, md.MD, error) {
+	if !adm.mm.User.HasPermissionTo(cc.ActingUserID, model.PERMISSION_MANAGE_SYSTEM) {
+		return nil, "", errors.New("forbidden")
+	}
+
 	app := in.App
 	if app.Manifest.AppID == "" {
 		return nil, "", errors.New("app ID must not be empty")
 	}
-	_, err := adm.store.LoadApp(app.Manifest.AppID)
+	_, err := adm.store.App().Get(app.Manifest.AppID)
 	switch {
 	case err == utils.ErrNotFound:
 
@@ -47,34 +51,42 @@ func (adm *Admin) InstallApp(cc *api.Context, in *api.InInstallApp) (*api.App, m
 	client := model.NewAPIv4Client(conf.MattermostSiteURL)
 	client.SetToken(cc.AdminAccessToken)
 
-	oAuthApp, err := adm.ensureOAuthApp(app.Manifest, in.App.OAuth2TrustedApp, cc.ActingUserID, cc.AdminAccessToken)
+	if app.GrantedPermissions.Contains(apps.PermissionActAsUser) {
+		var oAuthApp *model.OAuthApp
+		oAuthApp, err = adm.ensureOAuthApp(app.Manifest, app.OAuth2TrustedApp, cc.ActingUserID, string(cc.AdminAccessToken))
+		if err != nil {
+			return nil, "", err
+		}
+		app.OAuth2ClientID = oAuthApp.Id
+		app.OAuth2ClientSecret = oAuthApp.ClientSecret
+
+		// Installed app is automatically enabled, since config is done in the installation process
+		if app.Status == "" || app.Status == apps.AppStatusRegistered {
+			app.Status = apps.AppStatusInstalled
+		}
+	}
+
+	err = adm.store.App().Save(app)
 	if err != nil {
 		return nil, "", err
 	}
-	app.OAuth2ClientID = oAuthApp.Id
-	app.OAuth2ClientSecret = oAuthApp.ClientSecret
 
-	err = adm.store.StoreApp(app)
-	if err != nil {
-		return nil, "", err
-	}
-
-	install := app.Manifest.Install
+	install := app.Manifest.OnInstall
 	if install == nil {
-		install = api.DefaultInstallCall
+		install = apps.DefaultInstallCall
 	}
 	install.Context = cc
-	install.Context.ExpandedContext = api.ExpandedContext{}
+	install.Context.ExpandedContext = apps.ExpandedContext{}
 
 	_, cr := adm.proxy.Call(cc.AdminAccessToken, install)
-	if cr.Type == api.CallResponseTypeError {
+	if cr.Type == apps.CallResponseTypeError {
 		return nil, "", errors.Wrap(cr, "install failed")
 	}
 
 	return app, cr.Markdown, nil
 }
 
-func (adm *Admin) ensureBot(manifest *api.Manifest, actingUserID, sessionToken string) (*model.Bot, *model.UserAccessToken, error) {
+func (adm *Admin) ensureBot(manifest *apps.Manifest, actingUserID, sessionToken string) (*model.Bot, *model.UserAccessToken, error) {
 	conf := adm.conf.GetConfig()
 	client := model.NewAPIv4Client(conf.MattermostSiteURL)
 	client.SetToken(sessionToken)
@@ -131,8 +143,8 @@ func (adm *Admin) ensureBot(manifest *api.Manifest, actingUserID, sessionToken s
 	return fullBot, token, nil
 }
 
-func (adm *Admin) ensureOAuthApp(manifest *api.Manifest, noUserConsent bool, actingUserID, sessionToken string) (*model.OAuthApp, error) {
-	app, err := adm.store.LoadApp(manifest.AppID)
+func (adm *Admin) ensureOAuthApp(manifest *apps.Manifest, noUserConsent bool, actingUserID, sessionToken string) (*model.OAuthApp, error) {
+	app, err := adm.store.App().Get(manifest.AppID)
 	if err != nil && err != utils.ErrNotFound {
 		return nil, err
 	}

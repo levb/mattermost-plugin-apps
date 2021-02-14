@@ -4,39 +4,39 @@
 package builtin
 
 import (
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 )
 
-func (a *App) installAppForm(manifest *api.Manifest) *api.Form {
-	fields := []*api.Field{
+func (a *App) installAppForm(manifest *apps.Manifest) *apps.Form {
+	fields := []*apps.Field{
 		{
 			Name:        fieldRequireUserConsent,
-			Type:        api.FieldTypeBool,
+			Type:        apps.FieldTypeBool,
 			Description: "If **on**, users will be prompted for consent before connecting to the App",
 			Label:       flagRequireUserConsent,
 		},
 	}
 
-	if manifest.Type == api.AppTypeHTTP {
-		fields = append(fields, &api.Field{
+	if manifest.Type == apps.AppTypeHTTP {
+		fields = append(fields, &apps.Field{
 			Name:             fieldSecret,
-			Type:             api.FieldTypeText,
+			Type:             apps.FieldTypeText,
 			Description:      "The App's secret to use in JWT.",
 			Label:            flagSecret,
 			AutocompleteHint: "paste the secret obtained from the App",
 		})
 	}
 
-	return &api.Form{
+	return &apps.Form{
 		Title:  "Install an App",
 		Fields: fields,
-		Call: &api.Call{
+		Call: &apps.Call{
 			URL: PathInstallAppCommand,
 		},
 	}
 }
 
-func (a *App) installApp(call *api.Call) *api.CallResponse {
+func (a *App) installApp(call *apps.Call) *apps.CallResponse {
 	// secret := call.GetStringValue(fieldSecret, "")
 	// requireUserConsent := call.GetBoolValue(fieldRequireUserConsent)
 	// 	appID := api.AppID(call.GetStringValue(fieldExampleApp, ""))

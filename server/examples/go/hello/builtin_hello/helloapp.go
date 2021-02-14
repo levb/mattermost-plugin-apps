@@ -6,9 +6,11 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
+
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -31,33 +33,33 @@ func New(appService *api.Service) *helloapp {
 	}
 }
 
-func Manifest() *api.Manifest {
-	return &api.Manifest{
+func Manifest() *apps.Manifest {
+	return &apps.Manifest{
 		AppID:       AppID,
-		Type:        api.AppTypeBuiltin,
+		Type:        apps.AppTypeBuiltin,
 		DisplayName: AppDisplayName,
 		Description: AppDescription,
-		RequestedPermissions: api.Permissions{
-			api.PermissionUserJoinedChannelNotification,
-			api.PermissionActAsUser,
-			api.PermissionActAsBot,
+		RequestedPermissions: apps.Permissions{
+			apps.PermissionUserJoinedChannelNotification,
+			apps.PermissionActAsUser,
+			apps.PermissionActAsBot,
 		},
-		RequestedLocations: api.Locations{
-			api.LocationChannelHeader,
-			api.LocationPostMenu,
-			api.LocationCommand,
-			api.LocationInPost,
+		RequestedLocations: apps.Locations{
+			apps.LocationChannelHeader,
+			apps.LocationPostMenu,
+			apps.LocationCommand,
+			apps.LocationInPost,
 		},
 		HomepageURL: ("https://github.com/mattermost"),
 	}
 }
 
-func (h *helloapp) Roundtrip(c *api.Call) (io.ReadCloser, error) {
-	cr := &api.CallResponse{}
+func (h *helloapp) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
+	cr := &apps.CallResponse{}
 	switch c.URL {
 	case api.BindingsPath:
 		cr = h.GetBindings(c)
-	case api.DefaultInstallCallPath:
+	case apps.DefaultInstallCallPath:
 		cr = h.Install(AppID, AppDisplayName, c)
 	case hello.PathSendSurvey:
 		cr = h.SendSurvey(c)
@@ -80,13 +82,12 @@ func (h *helloapp) Roundtrip(c *api.Call) (io.ReadCloser, error) {
 	return ioutil.NopCloser(bytes.NewReader(bb)), nil
 }
 
-func (h *helloapp) OneWay(call *api.Call) error {
+func (h *helloapp) OneWay(call *apps.Call) error {
 	switch call.Context.Subject {
-	case api.SubjectUserJoinedChannel:
+	case apps.SubjectUserJoinedChannel:
 		h.HelloApp.UserJoinedChannel(call)
 	default:
 		return errors.Errorf("%s is not supported", call.Context.Subject)
 	}
 	return nil
 }
-

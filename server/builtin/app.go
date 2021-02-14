@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api"
 	"github.com/pkg/errors"
 )
@@ -65,28 +66,28 @@ func NewApp(api *api.Service) *App {
 
 var _ api.Upstream = (*App)(nil)
 
-func (a *App) MattermostApp() *api.App {
+func (a *App) MattermostApp() *apps.App {
 	conf := a.API.Configurator.GetConfig()
-	return &api.App{
-		Manifest: &api.Manifest{
+	return &apps.App{
+		Manifest: &apps.Manifest{
 			AppID:       AppID,
-			Type:        api.AppTypeBuiltin,
+			Type:        apps.AppTypeBuiltin,
 			DisplayName: AppDisplayName,
 			Description: AppDescription,
-			RequestedLocations: api.Locations{
-				api.LocationCommand,
+			RequestedLocations: apps.Locations{
+				apps.LocationCommand,
 			},
 		},
 		BotUserID:   conf.BotUserID,
 		BotUsername: api.BotUsername,
-		GrantedLocations: api.Locations{
-			api.LocationCommand,
+		GrantedLocations: apps.Locations{
+			apps.LocationCommand,
 		},
 	}
 }
 
-func (a *App) Roundtrip(c *api.Call) (io.ReadCloser, error) {
-	cr := &api.CallResponse{}
+func (a *App) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
+	cr := &apps.CallResponse{}
 	switch c.URL {
 	case api.BindingsPath:
 		cr = a.funcGetBindings(c)
@@ -119,34 +120,34 @@ func (a *App) Roundtrip(c *api.Call) (io.ReadCloser, error) {
 	return ioutil.NopCloser(bytes.NewReader(bb)), nil
 }
 
-func (a *App) OneWay(call *api.Call) error {
+func (a *App) OneWay(call *apps.Call) error {
 	return nil
 }
 
 func simpleFunc(
-	formf func(*api.Call) (*api.Form, error),
-	submitf func(*api.Call) *api.CallResponse) func(call *api.Call) *api.CallResponse {
-	return func(call *api.Call) *api.CallResponse {
+	formf func(*apps.Call) (*apps.Form, error),
+	submitf func(*apps.Call) *apps.CallResponse) func(call *apps.Call) *apps.CallResponse {
+	return func(call *apps.Call) *apps.CallResponse {
 		switch call.Type {
-		case api.CallTypeForm:
-			form := &api.Form{}
+		case apps.CallTypeForm:
+			form := &apps.Form{}
 			if formf != nil {
 				var err error
 				form, err = formf(call)
 				if err != nil {
-					return api.NewErrorCallResponse(err)
+					return apps.NewErrorCallResponse(err)
 				}
 			}
-			return &api.CallResponse{
-				Type: api.CallResponseTypeForm,
+			return &apps.CallResponse{
+				Type: apps.CallResponseTypeForm,
 				Form: form,
 			}
 
-		case api.CallTypeSubmit:
+		case apps.CallTypeSubmit:
 			return submitf(call)
 
 		default:
-			return api.NewErrorCallResponse(errors.New("not supported"))
+			return apps.NewErrorCallResponse(errors.New("not supported"))
 		}
 	}
 }

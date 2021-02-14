@@ -6,7 +6,7 @@ package builtin
 import (
 	"fmt"
 
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/proxy"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/builtin_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/http_hello"
@@ -18,15 +18,15 @@ const (
 	DebugInstallFromURL = true
 )
 
-func (a *App) installAppCommandForm(c *api.Call) (*api.Form, error) {
-	fields := []*api.Field{
+func (a *App) installAppCommandForm(c *apps.Call) (*apps.Form, error) {
+	fields := []*apps.Field{
 		{
 			Name:             fieldAppID,
-			Type:             api.FieldTypeStaticSelect,
+			Type:             apps.FieldTypeStaticSelect,
 			Description:      "select an App from the list",
 			Label:            flagAppID,
 			AutocompleteHint: "App",
-			SelectStaticOptions: []api.SelectOption{
+			SelectStaticOptions: []apps.SelectOption{
 				{
 					Label: builtin_hello.AppDisplayName,
 					Value: builtin_hello.AppID,
@@ -42,9 +42,9 @@ func (a *App) installAppCommandForm(c *api.Call) (*api.Form, error) {
 	}
 
 	if DebugInstallFromURL {
-		fields = append(fields, &api.Field{
+		fields = append(fields, &apps.Field{
 			Name:             fieldManifestURL,
-			Type:             api.FieldTypeText,
+			Type:             apps.FieldTypeText,
 			Description:      "(debug) location of the App manifest",
 			Label:            flagManifestURL,
 			AutocompleteHint: "enter the URL",
@@ -53,24 +53,24 @@ func (a *App) installAppCommandForm(c *api.Call) (*api.Form, error) {
 
 	fmt.Printf("<><> %+v\n", fields[0])
 
-	return &api.Form{
+	return &apps.Form{
 		Title:  "Install an App",
 		Fields: fields,
-		Call: &api.Call{
+		Call: &apps.Call{
 			URL: PathInstallAppCommand,
 		},
 	}, nil
 }
 
-func (a *App) installAppCommand(call *api.Call) *api.CallResponse {
+func (a *App) installAppCommand(call *apps.Call) *apps.CallResponse {
 	id := call.GetStringValue(fieldAppID, "")
 	manifestURL := call.GetStringValue(fieldManifestURL, "")
 	conf := a.API.Configurator.GetConfig()
 
-	var manifest *api.Manifest
+	var manifest *apps.Manifest
 	switch {
 	case id != "" && manifestURL != "":
-		return api.NewCallResponse("", nil,
+		return apps.NewCallResponse("", nil,
 			errors.Errorf("`--%s` and `--%s` can not be both specified", flagAppID, flagManifestURL))
 	case id == http_hello.AppID:
 		manifest = http_hello.Manifest(conf)
@@ -82,12 +82,12 @@ func (a *App) installAppCommand(call *api.Call) *api.CallResponse {
 		var err error
 		manifest, err = proxy.LoadManifest(manifestURL)
 		if err != nil {
-			return api.NewCallResponse("", nil, err)
+			return apps.NewCallResponse("", nil, err)
 		}
 	}
 
-	return &api.CallResponse{
-		Type: api.CallResponseTypeForm,
+	return &apps.CallResponse{
+		Type: apps.CallResponseTypeForm,
 		Form: a.installAppForm(manifest),
 	}
 }

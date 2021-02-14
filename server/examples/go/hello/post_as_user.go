@@ -3,43 +3,43 @@ package hello
 import (
 	"fmt"
 
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
-	"github.com/mattermost/mattermost-plugin-apps/server/examples"
+	"github.com/mattermost/mattermost-plugin-apps/apps"
+	"github.com/mattermost/mattermost-plugin-apps/apps/mmclient"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
 )
 
-func (h *HelloApp) PostAsUser(call *api.Call) *api.CallResponse {
+func (h *HelloApp) PostAsUser(call *apps.Call) *apps.CallResponse {
 	switch call.Type {
-	case api.CallTypeForm:
+	case apps.CallTypeForm:
 		return newPostAsUserFormResponse(call)
 
-	case api.CallTypeSubmit:
+	case apps.CallTypeSubmit:
 		txt, err := h.postAsUser(call)
-		return api.NewCallResponse(txt, nil, err)
+		return apps.NewCallResponse(txt, nil, err)
 
 	default:
-		return api.NewErrorCallResponse(errors.New("not supported"))
+		return apps.NewErrorCallResponse(errors.New("not supported"))
 	}
 }
 
-func newPostAsUserFormResponse(c *api.Call) *api.CallResponse {
+func newPostAsUserFormResponse(c *apps.Call) *apps.CallResponse {
 	message := ""
 	if c.Context != nil && c.Context.Post != nil {
 		message = c.Context.Post.Message
 	}
 
-	return &api.CallResponse{
-		Type: api.CallResponseTypeForm,
-		Form: &api.Form{
+	return &apps.CallResponse{
+		Type: apps.CallResponseTypeForm,
+		Form: &apps.Form{
 			Title:  fmt.Sprintf("Post to the %s channel, as user", c.Context.AppID),
 			Header: "Message modal form header",
 			Footer: "Message modal form footer",
-			Fields: []*api.Field{
+			Fields: []*apps.Field{
 				{
 					Name:             fieldMessage,
-					Type:             api.FieldTypeText,
+					Type:             apps.FieldTypeText,
 					Description:      "Text to post",
 					IsRequired:       true,
 					Label:            "message",
@@ -55,8 +55,8 @@ func newPostAsUserFormResponse(c *api.Call) *api.CallResponse {
 	}
 }
 
-func (h *HelloApp) postAsUser(call *api.Call) (md.MD, error) {
-	acting := examples.AsActingUser(call.Context)
+func (h *HelloApp) postAsUser(call *apps.Call) (md.MD, error) {
+	acting := mmclient.AsActingUser(call.Context)
 
 	channel, _ := acting.GetChannelByName(string(call.Context.AppID), string(call.Context.TeamID), "")
 	if channel == nil {

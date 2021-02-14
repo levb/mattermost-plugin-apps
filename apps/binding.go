@@ -1,4 +1,4 @@
-package api
+package apps
 
 // Binding should be abbreviated as `b`.
 type Binding struct {

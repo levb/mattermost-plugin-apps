@@ -5,7 +5,7 @@ import (
 
 	"github.com/mattermost/mattermost-server/v5/model"
 
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/oauther"
 )
 
@@ -20,16 +20,16 @@ type expandCache struct {
 
 var errOAuthRequired = errors.New("oauth2 (re-)authorization with Mattermost required")
 
-func (p *Proxy) expandCall(inCall *api.Call, app *api.App, adminAccessToken string, oauth oauther.OAuther, cache *expandCache) (*api.Call, error) {
+func (p *Proxy) expandCall(inCall *apps.Call, app *apps.App, adminAccessToken string, oauth oauther.OAuther, cache *expandCache) (*apps.Call, error) {
 	call := *inCall
 	if cache == nil {
 		cache = &expandCache{}
 	}
-	cc := api.Context{}
+	cc := apps.Context{}
 	if call.Context != nil {
 		cc = *call.Context
 	}
-	expand := api.Expand{}
+	expand := apps.Expand{}
 	if call.Expand != nil {
 		expand = *call.Expand
 	}
@@ -38,12 +38,12 @@ func (p *Proxy) expandCall(inCall *api.Call, app *api.App, adminAccessToken stri
 	cc.MattermostSiteURL = conf.MattermostSiteURL
 
 	cc.BotUserID = app.BotUserID
-	if app.GrantedPermissions.Contains(api.PermissionActAsBot) {
+	if app.GrantedPermissions.Contains(apps.PermissionActAsBot) {
 		cc.BotAccessToken = app.BotAccessToken
 	}
 
 	if cc.ActingUserID != "" {
-		if app.GrantedPermissions.Contains(api.PermissionActAsUser) {
+		if app.GrantedPermissions.Contains(apps.PermissionActAsUser) {
 			t, err := oauth.GetToken(cc.ActingUserID)
 			if err != nil {
 				return nil, err
@@ -74,7 +74,7 @@ func (p *Proxy) expandCall(inCall *api.Call, app *api.App, adminAccessToken stri
 	// out of expand?
 	// TODO: Implement collecting user consent for the admin token, in-line?
 	if expand.AdminAccessToken.Any() {
-		cc.AdminAccessToken = adminAccessToken
+		cc.AdminAccessToken = string(adminAccessToken)
 	}
 
 	if expand.Channel != "" && cc.ChannelID != "" && cache.channel == nil {
@@ -118,7 +118,7 @@ func (p *Proxy) expandCall(inCall *api.Call, app *api.App, adminAccessToken stri
 		cache.user = user
 	}
 
-	cc.ExpandedContext = api.ExpandedContext{
+	cc.ExpandedContext = apps.ExpandedContext{
 		BotAccessToken: app.BotAccessToken,
 
 		ActingUser: stripUser(cache.actingUser, expand.ActingUser),
@@ -135,11 +135,11 @@ func (p *Proxy) expandCall(inCall *api.Call, app *api.App, adminAccessToken stri
 	return &call, nil
 }
 
-func stripUser(user *model.User, level api.ExpandLevel) *model.User {
-	if user == nil || level == api.ExpandAll {
+func stripUser(user *model.User, level apps.ExpandLevel) *model.User {
+	if user == nil || level == apps.ExpandAll {
 		return user
 	}
-	if level != api.ExpandSummary {
+	if level != apps.ExpandSummary {
 		return nil
 	}
 	return &model.User{
@@ -158,11 +158,11 @@ func stripUser(user *model.User, level api.ExpandLevel) *model.User {
 	}
 }
 
-func stripChannel(channel *model.Channel, level api.ExpandLevel) *model.Channel {
-	if channel == nil || level == api.ExpandAll {
+func stripChannel(channel *model.Channel, level apps.ExpandLevel) *model.Channel {
+	if channel == nil || level == apps.ExpandAll {
 		return channel
 	}
-	if level != api.ExpandSummary {
+	if level != apps.ExpandSummary {
 		return nil
 	}
 	return &model.Channel{
@@ -175,11 +175,11 @@ func stripChannel(channel *model.Channel, level api.ExpandLevel) *model.Channel 
 	}
 }
 
-func stripTeam(team *model.Team, level api.ExpandLevel) *model.Team {
-	if team == nil || level == api.ExpandAll {
+func stripTeam(team *model.Team, level apps.ExpandLevel) *model.Team {
+	if team == nil || level == apps.ExpandAll {
 		return team
 	}
-	if level != api.ExpandSummary {
+	if level != apps.ExpandSummary {
 		return nil
 	}
 	return &model.Team{
@@ -192,11 +192,11 @@ func stripTeam(team *model.Team, level api.ExpandLevel) *model.Team {
 	}
 }
 
-func stripPost(post *model.Post, level api.ExpandLevel) *model.Post {
-	if post == nil || level == api.ExpandAll {
+func stripPost(post *model.Post, level apps.ExpandLevel) *model.Post {
+	if post == nil || level == apps.ExpandAll {
 		return post
 	}
-	if level != api.ExpandSummary {
+	if level != apps.ExpandSummary {
 		return nil
 	}
 	return &model.Post{
@@ -209,7 +209,7 @@ func stripPost(post *model.Post, level api.ExpandLevel) *model.Post {
 	}
 }
 
-func stripApp(app *api.App, level api.ExpandLevel) *api.App {
+func stripApp(app *apps.App, level apps.ExpandLevel) *apps.App {
 	if app == nil {
 		return nil
 	}
@@ -219,7 +219,7 @@ func stripApp(app *api.App, level api.ExpandLevel) *api.App {
 	clone.OAuth2ClientSecret = ""
 
 	switch level {
-	case api.ExpandAll, api.ExpandSummary:
+	case apps.ExpandAll, apps.ExpandSummary:
 		return &clone
 	}
 	return nil
