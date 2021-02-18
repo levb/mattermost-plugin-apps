@@ -3,7 +3,7 @@
 
 package proxy
 
-const callOnceKey = "CallOnce_key"
+// <><> const callOnceKey = "CallOnce_key"
 
 // func (adm *Admin) callOnce(f func() error) error {
 // 	// Delete previous job

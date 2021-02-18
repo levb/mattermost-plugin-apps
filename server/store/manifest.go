@@ -4,25 +4,29 @@
 package store
 
 import (
-	"crypto/sha1"
+	"crypto/sha1" // nolint:gosec
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/url"
-	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils"
+	"github.com/mattermost/mattermost-plugin-apps/server/utils/httputils"
 )
 
 // The list of all locally registered manifests is stored in the config as a map[AppID]=>sha256(manifest).
-// The Save method updates the config and triggers a refresh accross all
+// The Save method updates the config and triggers a refresh across all
 type Manifest interface {
 	config.Configurable
 
-	Init() error
+	Init(manifestsFile io.Reader, assetPath string) error
 	List() map[apps.AppID]*apps.Manifest
 	Get(apps.AppID) (*apps.Manifest, error)
 	StoreLocal(*apps.Manifest) error
@@ -34,40 +38,58 @@ type manifestStore struct {
 
 	global map[apps.AppID]*apps.Manifest
 	local  map[apps.AppID]*apps.Manifest
-
-	// bucket is the S3 bucket to download the global manifests from
-	bucket string
 }
 
 var _ Manifest = (*manifestStore)(nil)
 
-func (s *manifestStore) Init() error {
+func (s *manifestStore) Init(manifestsFile io.Reader, assetPath string) error {
+	conf := s.conf.Get()
+	fmt.Printf("<><> 1 %+v\n", conf.StoredConfig)
 	s.global = map[apps.AppID]*apps.Manifest{}
 
 	// Read in the marketplace-listed manifests from S3, as per versions
 	// indicated in apps.json. apps.json file contains a map of AppID->manifest
 	// S3 filename (the bucket comes from the config)
-	f, err := os.Open(config.ManifestsFile)
+	manifestLocations := map[apps.AppID]string{}
+	err := json.NewDecoder(manifestsFile).Decode(&manifestLocations)
 	if err != nil {
-		s.mm.Log.Error("failed to load global list of apps: " + err.Error())
-	}
-	defer f.Close()
-
-	appVersions := map[apps.AppID]string{}
-	err = json.NewDecoder(f).Decode(&appVersions)
-	if err != nil {
+		fmt.Printf("<><> 2 %v\n", err)
 		return err
 	}
 
-	for appID, version := range appVersions {
-		var m *apps.Manifest
-		m, err = s.downloadFromS3(s.bucket, appID, version)
+	var data []byte
+	for appID, loc := range manifestLocations {
+		parts := strings.SplitN(loc, ":", 2)
+		switch {
+		case len(parts) == 1:
+			fmt.Printf("<><> 3 %v\n", conf.AWSManifestBucket)
+			data, err = s.getFromS3(conf.AWSManifestBucket, appID, apps.AppVersion(parts[0]))
+		case len(parts) == 2 && parts[0] == "s3":
+			data, err = s.getFromS3(conf.AWSManifestBucket, appID, apps.AppVersion(parts[1]))
+		case len(parts) == 2 && parts[0] == "file":
+			data, err = ioutil.ReadFile(filepath.Join(assetPath, parts[1]))
+		case len(parts) == 2 && (parts[0] == "http" || parts[0] == "https"):
+			data, err = httputils.GetFromURL(loc)
+		default:
+			return errors.Errorf("failed to load global manifest for %s: %s is invalid", string(appID), loc)
+		}
 		if err != nil {
-			s.mm.Log.Error(
-				fmt.Sprintf("failed to load global manifest for %s: %s", string(appID), err.Error()))
+			return errors.Wrapf(err, "failed to load global manifest for %s", string(appID))
 		}
 
-		s.global[appID] = m
+		var m apps.Manifest
+		err = json.Unmarshal(data, &m)
+		if err != nil {
+			return err
+		}
+		if m.AppID != appID {
+			return errors.Errorf("missmatched app ids while getting manifest %s != %s", m.AppID, appID)
+		}
+		err = validateManifest(&m)
+		if err != nil {
+			return err
+		}
+		s.global[appID] = &m
 	}
 
 	return nil
@@ -129,7 +151,7 @@ func (s *manifestStore) StoreLocal(m *apps.Manifest) error {
 	if err != nil {
 		return err
 	}
-	sha := fmt.Sprintf("%x", sha1.Sum(data))
+	sha := fmt.Sprintf("%x", sha1.Sum(data)) // nolint:gosec
 	if sha == prevSHA {
 		return nil
 	}
@@ -178,21 +200,14 @@ func (s *manifestStore) DeleteLocal(appID apps.AppID) error {
 }
 
 // GetManifest returns a manifest file for an app from the S3
-func (s *manifestStore) downloadFromS3(bucket string, appID apps.AppID, version string) (*apps.Manifest, error) {
+func (s *manifestStore) getFromS3(bucket string, appID apps.AppID, version apps.AppVersion) ([]byte, error) {
 	name := fmt.Sprintf("manifest_%s_%s", appID, version)
+	fmt.Printf("<><> 10 %q %q\n", bucket, name)
 	data, err := s.aws.Client().GetS3(bucket, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to download manifest %s", name)
 	}
-	var manifest apps.Manifest
-	err = json.Unmarshal(data, &manifest)
-	if err != nil {
-		return nil, err
-	}
-	if manifest.AppID != appID {
-		return nil, errors.Errorf("missmatched app ids while getting manifest %s != %s", manifest.AppID, appID)
-	}
-	return &manifest, nil
+	return data, nil
 }
 
 func validateManifest(m *apps.Manifest) error {

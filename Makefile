@@ -102,6 +102,8 @@ ifneq ($(HAS_SERVER),)
 	mockgen -destination server/mock/mock_store/mock_manifest.go github.com/mattermost/mattermost-plugin-apps/server/store Manifest
 	mockgen -destination server/mock/mock_store/mock_subscription.go github.com/mattermost/mattermost-plugin-apps/server/store Subscription
 	mockgen -destination server/mock/mock_appservices/mock_appservices.go github.com/mattermost/mattermost-plugin-apps/server/appservices Service
+	mockgen -destination server/mock/mock_aws/mock_aws.go github.com/mattermost/mattermost-plugin-apps/server/aws Service
+	mockgen -destination awsclient/mock_awsclient/mock_awsclient.go github.com/mattermost/mattermost-plugin-apps/awsclient Client
 endif
 
 ## Generates mock golang interfaces for testing

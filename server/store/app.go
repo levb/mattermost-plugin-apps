@@ -4,14 +4,15 @@
 package store
 
 import (
-	"crypto/sha1"
+	"crypto/sha1" // nolint:gosec
 	"encoding/json"
 	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils"
-	"github.com/pkg/errors"
 )
 
 type App interface {
@@ -84,7 +85,7 @@ func (s *appStore) List() map[apps.AppID]*apps.App {
 func (s *appStore) Store(app *apps.App) error {
 	_, ok := s.installed[app.AppID]
 	if ok {
-		return errors.Errorf("failed to store: builtin app %s is read-only")
+		return errors.Errorf("failed to store: builtin app %s is read-only", app.AppID)
 	}
 
 	conf := s.conf.Get()
@@ -94,7 +95,7 @@ func (s *appStore) Store(app *apps.App) error {
 	if err != nil {
 		return err
 	}
-	sha := fmt.Sprintf("%x", sha1.Sum(data))
+	sha := fmt.Sprintf("%x", sha1.Sum(data)) // nolint:gosec
 	if sha == prevSHA {
 		return nil
 	}
@@ -126,7 +127,7 @@ func (s *appStore) Store(app *apps.App) error {
 func (s *appStore) Delete(appID apps.AppID) error {
 	_, ok := s.installed[appID]
 	if ok {
-		return errors.Errorf("failed to delete: builtin app %s is read-only")
+		return errors.Errorf("failed to delete: builtin app %s is read-only", appID)
 	}
 
 	conf := s.conf.Get()

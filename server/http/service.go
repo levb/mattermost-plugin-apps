@@ -6,10 +6,11 @@ import (
 	"github.com/gorilla/mux"
 
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
+	"github.com/mattermost/mattermost-server/v5/plugin"
+
 	"github.com/mattermost/mattermost-plugin-apps/server/appservices"
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/proxy"
-	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
 type Service interface {

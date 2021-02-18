@@ -2,7 +2,9 @@ package oauth
 
 import (
 	"github.com/gorilla/mux"
+
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
+
 	"github.com/mattermost/mattermost-plugin-apps/server/appservices"
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/proxy"

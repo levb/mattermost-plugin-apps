@@ -109,3 +109,13 @@ func ProcessResponseError(w http.ResponseWriter, resp *http.Response, err error)
 	}
 	return false
 }
+
+func GetFromURL(url string) ([]byte, error) {
+	// nolint:gosec
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
+}

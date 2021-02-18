@@ -59,7 +59,7 @@ type proxy struct {
 
 var _ Service = (*proxy)(nil)
 
-func NewService(mm *pluginapi.Client, aws aws.Service, conf config.Service, store *store.Service) *proxy {
+func NewService(mm *pluginapi.Client, aws aws.Service, conf config.Service, store *store.Service) Service {
 	return &proxy{
 		mm:    mm,
 		conf:  conf,

@@ -23,9 +23,9 @@ func TestDeleteSub(t *testing.T) {
 	mockAPI := &plugintest.API{}
 	defer mockAPI.AssertExpectations(t)
 
-	apiClient := pluginapi.NewClient(mockAPI)
-	conf := config.NewService(apiClient, &config.BuildConfig{}, botID)
-	s := NewService(apiClient, conf, nil)
+	mm := pluginapi.NewClient(mockAPI)
+	conf := config.NewService(mm, &config.BuildConfig{}, botID)
+	s := NewService(mm, conf, nil)
 
 	toDelete := apps.Subscription{
 		Subject:   "user_joined_channel",
@@ -130,9 +130,9 @@ func TestGetSubs(t *testing.T) {
 	mockAPI := &plugintest.API{}
 	defer mockAPI.AssertExpectations(t)
 
-	apiClient := pluginapi.NewClient(mockAPI)
-	conf := config.NewService(apiClient, &config.BuildConfig{}, botID)
-	s := NewService(apiClient, conf, nil)
+	mm := pluginapi.NewClient(mockAPI)
+	conf := config.NewService(mm, &config.BuildConfig{}, botID)
+	s := NewService(mm, conf, nil)
 
 	emptySubs := []*apps.Subscription{}
 	emptySubsBytes, _ := json.Marshal(emptySubs)
@@ -193,9 +193,9 @@ func TestStoreSub(t *testing.T) {
 	mockAPI := &plugintest.API{}
 	defer mockAPI.AssertExpectations(t)
 
-	apiClient := pluginapi.NewClient(mockAPI)
-	conf := config.NewService(apiClient, &config.BuildConfig{}, botID)
-	s := NewService(apiClient, conf, nil)
+	mm := pluginapi.NewClient(mockAPI)
+	conf := config.NewService(mm, &config.BuildConfig{}, botID)
+	s := NewService(mm, conf, nil)
 
 	toStore := apps.Subscription{
 		Subject:   "user_joined_channel",

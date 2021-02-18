@@ -8,6 +8,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	apps "github.com/mattermost/mattermost-plugin-apps/apps"
 	config "github.com/mattermost/mattermost-plugin-apps/server/config"
+	io "io"
 	reflect "reflect"
 )
 
@@ -78,17 +79,17 @@ func (mr *MockManifestMockRecorder) Get(arg0 interface{}) *gomock.Call {
 }
 
 // Init mocks base method
-func (m *MockManifest) Init() error {
+func (m *MockManifest) Init(arg0 io.Reader, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Init")
+	ret := m.ctrl.Call(m, "Init", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Init indicates an expected call of Init
-func (mr *MockManifestMockRecorder) Init() *gomock.Call {
+func (mr *MockManifestMockRecorder) Init(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockManifest)(nil).Init))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockManifest)(nil).Init), arg0, arg1)
 }
 
 // List mocks base method

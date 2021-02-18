@@ -5,6 +5,8 @@ package main
 
 import (
 	gohttp "net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -27,7 +29,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/store"
 )
 
-const mutexKey = "Cluster_Mutex"
+// <><> const mutexKey = "Cluster_Mutex"
 
 type Plugin struct {
 	plugin.MattermostPlugin
@@ -70,7 +72,18 @@ func (p *Plugin) OnActivate() error {
 	_ = p.conf.Refresh(&stored)
 
 	p.store = store.NewService(p.mm, p.conf, p.aws)
-	err = p.store.Manifest.Init()
+	bundlePath, err := p.mm.System.GetBundlePath()
+	if err != nil {
+		return errors.Wrap(err, "can't get bundle path")
+	}
+	assetPath := filepath.Join(bundlePath, "assets")
+	f, err := os.Open(filepath.Join(assetPath, config.ManifestsFile))
+	if err != nil {
+		return errors.Wrap(err, "failed to load global list of available apps")
+	}
+	defer f.Close()
+
+	err = p.store.Manifest.Init(f, assetPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize data store")
 	}

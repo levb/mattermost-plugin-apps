@@ -29,7 +29,7 @@ type StoredConfig struct {
 	// provided as env. variables?
 	AWSAccessKeyID     string `json:"aws_access_key_id,omitempty"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key,omitempty"`
-	AWSS3Bucket        string `json:"aws_s3_bucket,omitempty"`
+	AWSManifestBucket  string `json:"aws_manifest_bucket,omitempty"`
 }
 
 type BuildConfig struct {

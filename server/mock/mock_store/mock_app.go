@@ -35,19 +35,15 @@ func (m *MockApp) EXPECT() *MockAppMockRecorder {
 }
 
 // AddBuiltin mocks base method
-func (m *MockApp) AddBuiltin(arg0 ...*apps.App) {
+func (m *MockApp) AddBuiltin(arg0 *apps.App) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range arg0 {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "AddBuiltin", varargs...)
+	m.ctrl.Call(m, "AddBuiltin", arg0)
 }
 
 // AddBuiltin indicates an expected call of AddBuiltin
-func (mr *MockAppMockRecorder) AddBuiltin(arg0 ...interface{}) *gomock.Call {
+func (mr *MockAppMockRecorder) AddBuiltin(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBuiltin", reflect.TypeOf((*MockApp)(nil).AddBuiltin), arg0...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBuiltin", reflect.TypeOf((*MockApp)(nil).AddBuiltin), arg0)
 }
 
 // Configure mocks base method

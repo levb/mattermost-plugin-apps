@@ -7,6 +7,7 @@ import (
 
 type AppID string
 type AppType string
+type AppVersion string
 
 // default is HTTP
 const (
@@ -22,9 +23,9 @@ func (at AppType) IsValid() bool {
 }
 
 type Common struct {
-	AppID   AppID   `json:"app_id"`
-	Type    AppType `json:"app_type"`
-	Version string  `json:"version"`
+	AppID   AppID      `json:"app_id"`
+	Type    AppType    `json:"app_type"`
+	Version AppVersion `json:"version"`
 
 	DisplayName string `json:"display_name,omitempty"`
 	Description string `json:"description,omitempty"`

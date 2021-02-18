@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mattermost/mattermost-plugin-apps/server/utils/httputils"
-	"github.com/pkg/errors"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/pkg/errors"
+
+	"github.com/mattermost/mattermost-plugin-apps/server/utils/httputils"
 )
 
 const MaxFileSize = 100 * (1 << 20)

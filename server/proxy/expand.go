@@ -74,7 +74,7 @@ func (p *proxy) expandCall(inCall *apps.Call, app *apps.App, adminAccessToken st
 	// out of expand?
 	// TODO: Implement collecting user consent for the admin token, in-line?
 	if expand.AdminAccessToken.Any() {
-		cc.AdminAccessToken = string(adminAccessToken)
+		cc.AdminAccessToken = adminAccessToken
 	}
 
 	if expand.Channel != "" && cc.ChannelID != "" && cache.channel == nil {

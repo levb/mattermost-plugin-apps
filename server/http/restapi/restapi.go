@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
+
 	"github.com/mattermost/mattermost-plugin-apps/server/appservices"
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/proxy"
@@ -40,7 +41,7 @@ func Init(router *mux.Router, mm *pluginapi.Client, conf config.Service, proxy p
 	subrouter.HandleFunc(config.KVPath+"/{key}", a.handleKV(a.kvHead)).Methods("HEAD")
 	subrouter.HandleFunc(config.KVPath+"/{key}", a.handleKV(a.kvDelete)).Methods("DELETE")
 
-	// subrouter.HandleFunc(config.PathMarketplace, checkAuthorized(a.handleGetMarketplace)).Methods(http.MethodGet)
+	subrouter.HandleFunc(config.PathMarketplace, checkAuthorized(a.handleGetMarketplace)).Methods(http.MethodGet)
 }
 
 func checkAuthorized(f func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
