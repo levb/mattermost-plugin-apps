@@ -9,8 +9,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello"
+	"github.com/mattermost/mattermost-plugin-apps/server/upstream"
 )
 
 const (
@@ -23,43 +24,43 @@ type helloapp struct {
 	*hello.HelloApp
 }
 
-var _ api.Upstream = (*helloapp)(nil)
+var _ upstream.Upstream = (*helloapp)(nil)
 
-func New(appService *api.Service) *helloapp {
+func NewHelloApp() *helloapp {
 	return &helloapp{
-		HelloApp: &hello.HelloApp{
-			API: appService,
-		},
+		HelloApp: &hello.HelloApp{},
 	}
 }
 
-func Manifest() *apps.Manifest {
-	return &apps.Manifest{
-		AppID:       AppID,
-		Type:        apps.AppTypeBuiltin,
-		DisplayName: AppDisplayName,
-		Description: AppDescription,
-		RequestedPermissions: apps.Permissions{
+func (h *helloapp) App() *apps.App {
+	return &apps.App{
+		Common: apps.Common{
+			AppID:       AppID,
+			Type:        apps.AppTypeBuiltin,
+			DisplayName: AppDisplayName,
+			Description: AppDescription,
+			HomepageURL: ("https://github.com/mattermost"),
+		},
+		GrantedPermissions: apps.Permissions{
 			apps.PermissionUserJoinedChannelNotification,
 			apps.PermissionActAsUser,
 			apps.PermissionActAsBot,
 		},
-		RequestedLocations: apps.Locations{
+		GrantedLocations: apps.Locations{
 			apps.LocationChannelHeader,
 			apps.LocationPostMenu,
 			apps.LocationCommand,
 			apps.LocationInPost,
 		},
-		HomepageURL: ("https://github.com/mattermost"),
 	}
 }
 
 func (h *helloapp) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
 	cr := &apps.CallResponse{}
 	switch c.URL {
-	case api.BindingsPath:
+	case config.BindingsPath:
 		cr = h.GetBindings(c)
-	case apps.DefaultInstallCallPath:
+	case "/install":
 		cr = h.Install(AppID, AppDisplayName, c)
 	case hello.PathSendSurvey:
 		cr = h.SendSurvey(c)

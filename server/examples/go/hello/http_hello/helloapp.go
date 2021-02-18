@@ -9,10 +9,12 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
+	pluginapi "github.com/mattermost/mattermost-plugin-api"
 	"github.com/mattermost/mattermost-plugin-apps/apps"
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
-	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/proxy"
+	"github.com/mattermost/mattermost-plugin-apps/server/appservices"
+	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello"
+	"github.com/mattermost/mattermost-plugin-apps/server/proxy"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/httputils"
 )
 
@@ -31,17 +33,21 @@ type helloapp struct {
 	*hello.HelloApp
 }
 
-// Init hello app router
-func Init(router *mux.Router, appsService *api.Service) {
-	h := helloapp{
-		hello.NewHelloApp(appsService),
+func NewHelloApp(conf config.Service) *helloapp {
+	return &helloapp{
+		HelloApp: hello.NewHelloApp(conf),
 	}
+}
 
-	r := router.PathPrefix(api.HelloHTTPPath).Subrouter()
+// Init hello app router
+func Init(router *mux.Router, _ *pluginapi.Client, conf config.Service, _ proxy.Service, _ appservices.Service) {
+	h := NewHelloApp(conf)
+
+	r := router.PathPrefix(config.HelloHTTPPath).Subrouter()
 	r.HandleFunc(PathManifest, h.handleManifest).Methods("GET")
 
-	handle(r, apps.DefaultInstallCallPath, h.Install)
-	handle(r, apps.DefaultBindingsCallPath, h.GetBindings)
+	handle(r, "/install", h.Install)
+	handle(r, "/bindings", h.GetBindings)
 	handle(r, hello.PathSendSurvey, h.SendSurvey)
 	handle(r, hello.PathSendSurveyModal, h.SendSurveyModal)
 	handle(r, hello.PathSendSurveyCommandToModal, h.SendSurveyCommandToModal)
@@ -50,13 +56,16 @@ func Init(router *mux.Router, appsService *api.Service) {
 	handle(r, hello.PathPostAsUser, h.PostAsUser)
 }
 
-func Manifest(conf api.Config) *apps.Manifest {
+func Manifest(conf config.Config) *apps.Manifest {
 	return &apps.Manifest{
-		AppID:       AppID,
-		Type:        apps.AppTypeHTTP,
-		DisplayName: AppDisplayName,
-		Description: AppDescription,
-		HTTPRootURL: appURL(conf, ""),
+		Common: apps.Common{
+			AppID:       AppID,
+			Type:        apps.AppTypeHTTP,
+			DisplayName: AppDisplayName,
+			Description: AppDescription,
+			HomepageURL: appURL(conf, "/"),
+		},
+		RootURL: appURL(conf, ""),
 		RequestedPermissions: apps.Permissions{
 			apps.PermissionUserJoinedChannelNotification,
 			apps.PermissionActAsUser,
@@ -68,12 +77,11 @@ func Manifest(conf api.Config) *apps.Manifest {
 			apps.LocationCommand,
 			apps.LocationInPost,
 		},
-		HomepageURL: appURL(conf, "/"),
 	}
 }
 
 func (h *helloapp) handleManifest(w http.ResponseWriter, req *http.Request) {
-	httputils.WriteJSON(w, Manifest(h.API.Configurator.GetConfig()))
+	httputils.WriteJSON(w, Manifest(h.Conf.Get()))
 }
 
 func (h *helloapp) Install(call *apps.Call) *apps.CallResponse {
@@ -100,14 +108,14 @@ func handle(r *mux.Router, path string, h func(*apps.Call) *apps.CallResponse) {
 	).Methods("POST")
 }
 
-func checkJWT(req *http.Request) (*api.JWTClaims, error) {
-	authValue := req.Header.Get(api.OutgoingAuthHeader)
+func checkJWT(req *http.Request) (*apps.JWTClaims, error) {
+	authValue := req.Header.Get(apps.OutgoingAuthHeader)
 	if !strings.HasPrefix(authValue, "Bearer ") {
-		return nil, errors.Errorf("missing %s: Bearer header", api.OutgoingAuthHeader)
+		return nil, errors.Errorf("missing %s: Bearer header", apps.OutgoingAuthHeader)
 	}
 
 	jwtoken := strings.TrimPrefix(authValue, "Bearer ")
-	claims := api.JWTClaims{}
+	claims := apps.JWTClaims{}
 	_, err := jwt.ParseWithClaims(jwtoken, &claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -121,6 +129,6 @@ func checkJWT(req *http.Request) (*api.JWTClaims, error) {
 	return &claims, nil
 }
 
-func appURL(conf api.Config, path string) string {
-	return conf.PluginURL + api.HelloHTTPPath + path
+func appURL(conf config.Config, path string) string {
+	return conf.PluginURL + config.HelloHTTPPath + path
 }

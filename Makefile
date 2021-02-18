@@ -98,8 +98,10 @@ endif
 mock:
 ifneq ($(HAS_SERVER),)
 	go install github.com/golang/mock/mockgen
-	mockgen -destination server/api/mock_api/mock_appservices.go github.com/mattermost/mattermost-plugin-apps/server/api AppServices
-	mockgen -destination server/api/mock_api/mock_proxy.go github.com/mattermost/mattermost-plugin-apps/server/api Proxy
+	mockgen -destination server/mock/mock_store/mock_app.go github.com/mattermost/mattermost-plugin-apps/server/store App
+	mockgen -destination server/mock/mock_store/mock_manifest.go github.com/mattermost/mattermost-plugin-apps/server/store Manifest
+	mockgen -destination server/mock/mock_store/mock_subscription.go github.com/mattermost/mattermost-plugin-apps/server/store Subscription
+	mockgen -destination server/mock/mock_appservices/mock_appservices.go github.com/mattermost/mattermost-plugin-apps/server/appservices Service
 endif
 
 ## Generates mock golang interfaces for testing

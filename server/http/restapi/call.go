@@ -35,12 +35,12 @@ func (a *restapi) handleCall(w http.ResponseWriter, req *http.Request) {
 		httputils.WriteUnauthorizedError(w, err)
 		return
 	}
-	session, err := a.api.Mattermost.Session.Get(sessionID)
+	session, err := a.mm.Session.Get(sessionID)
 	if err != nil {
 		httputils.WriteUnauthorizedError(w, err)
 		return
 	}
 
-	_, cr := a.api.Proxy.Call(session.Token, call)
+	_, cr := a.proxy.Call(session.Token, call)
 	httputils.WriteJSON(w, cr)
 }

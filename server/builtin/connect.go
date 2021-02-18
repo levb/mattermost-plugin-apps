@@ -6,10 +6,6 @@ import (
 )
 
 func (a *App) connectForm(c *apps.Call) (*apps.Form, error) {
-	all, err := a.API.Admin.ListApps()
-	if err != nil {
-		return nil, err
-	}
 	return &apps.Form{
 		Title: "Connect App to Mattermost",
 		Fields: []*apps.Field{
@@ -20,7 +16,7 @@ func (a *App) connectForm(c *apps.Call) (*apps.Form, error) {
 				Label:                flagAppID,
 				AutocompleteHint:     "enter or select an App to connect",
 				AutocompletePosition: 1,
-				SelectStaticOptions:  a.getAppOptions(all),
+				SelectStaticOptions:  a.getAppOptions(),
 			},
 		},
 	}, nil
@@ -28,7 +24,7 @@ func (a *App) connectForm(c *apps.Call) (*apps.Form, error) {
 
 func (a *App) connect(call *apps.Call) *apps.CallResponse {
 	appID := apps.AppID(call.GetStringValue(fieldAppID, ""))
-	connectURL, err := a.API.Proxy.StartOAuthConnect(call.Context.ActingUserID, appID, call)
+	connectURL, err := a.proxy.StartOAuthConnect(call.Context.ActingUserID, appID, call)
 	if err != nil {
 		return apps.NewCallResponse("", nil, err)
 	}
@@ -42,13 +38,15 @@ func (a *App) disconnect(call *apps.Call) *apps.CallResponse {
 	return apps.NewCallResponse(txt, nil, nil)
 }
 
-func (a *App) getAppOptions(all []*apps.App) []apps.SelectOption {
+func (a *App) getAppOptions() []apps.SelectOption {
 	options := []apps.SelectOption{}
-	for _, app := range all {
+
+	allApps := a.proxy.ListInstalledApps()
+	for _, app := range allApps {
 		if app.GrantedPermissions.Contains(apps.PermissionActAsUser) {
 			options = append(options, apps.SelectOption{
-				Label: app.Manifest.DisplayName,
-				Value: string(app.Manifest.AppID),
+				Label: app.DisplayName,
+				Value: string(app.AppID),
 			})
 		}
 	}

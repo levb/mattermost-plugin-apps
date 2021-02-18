@@ -9,9 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
-	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/configurator"
-	"github.com/mattermost/mattermost-plugin-apps/server/api/mock_api"
 
 	"github.com/stretchr/testify/require"
 
@@ -22,7 +19,7 @@ import (
 func TestKV(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mocked := mock_api.NewMockAppServices(ctrl)
-	conf := configurator.NewTestConfigurator(&api.Config{})
+	conf := config.NewTestConfigurator(&api.Config{})
 	r := mux.NewRouter()
 	Init(r, &api.Service{
 		Configurator: conf,

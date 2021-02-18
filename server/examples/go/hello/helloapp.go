@@ -1,8 +1,6 @@
 package hello
 
-import (
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
-)
+import "github.com/mattermost/mattermost-plugin-apps/server/config"
 
 const (
 	fieldUserID   = "userID"
@@ -21,9 +19,11 @@ const (
 )
 
 type HelloApp struct {
-	API *api.Service
+	Conf config.Service
 }
 
-func NewHelloApp(api *api.Service) *HelloApp {
-	return &HelloApp{api}
+func NewHelloApp(conf config.Service) *HelloApp {
+	return &HelloApp{
+		Conf: conf,
+	}
 }

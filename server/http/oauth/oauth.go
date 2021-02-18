@@ -2,18 +2,20 @@ package oauth
 
 import (
 	"github.com/gorilla/mux"
-
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	pluginapi "github.com/mattermost/mattermost-plugin-api"
+	"github.com/mattermost/mattermost-plugin-apps/server/appservices"
+	"github.com/mattermost/mattermost-plugin-apps/server/config"
+	"github.com/mattermost/mattermost-plugin-apps/server/proxy"
 )
 
 type oauth struct {
-	api *api.Service
+	proxy proxy.Service
 }
 
-func Init(router *mux.Router, appsService *api.Service) {
+func Init(router *mux.Router, _ *pluginapi.Client, _ config.Service, proxy proxy.Service, _ appservices.Service) {
 	a := &oauth{
-		api: appsService,
+		proxy: proxy,
 	}
 
-	router.HandleFunc(api.OAuth2Path, a.api.Proxy.HandleOAuth).Methods("GET")
+	router.HandleFunc(config.OAuth2Path, a.proxy.HandleOAuth).Methods("GET")
 }

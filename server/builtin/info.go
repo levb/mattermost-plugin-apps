@@ -5,7 +5,7 @@ package builtin
 
 import (
 	"github.com/mattermost/mattermost-plugin-apps/apps"
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
@@ -19,12 +19,12 @@ func (a *App) infoForm(c *apps.Call) (*apps.Form, error) {
 }
 
 func (a *App) info(call *apps.Call) *apps.CallResponse {
-	conf := a.API.Configurator.GetConfig()
+	conf := a.conf.Get()
 	resp := md.Markdownf("Mattermost Cloud Apps plugin version: %s, "+
 		"[%s](https://github.com/mattermost/%s/commit/%s), built %s\n",
 		conf.Version,
 		conf.BuildHashShort,
-		api.Repository,
+		config.Repository,
 		conf.BuildHash,
 		conf.BuildDate)
 

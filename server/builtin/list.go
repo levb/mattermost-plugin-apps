@@ -18,19 +18,14 @@ func (a *App) listForm(c *apps.Call) (*apps.Form, error) {
 }
 
 func (a *App) list(call *apps.Call) *apps.CallResponse {
-	all, err := a.API.Admin.ListApps()
-	if err != nil {
-		return apps.NewCallResponse("", nil, err)
-	}
+	all := a.proxy.ListInstalledApps()
 
 	// txt := md.MD(``)
-	txt := md.MD("| ID  | Type | OAuth2 | Bot | Locations | Permissions |\n")
+	txt := md.MD("| Name  | Type | OAuth2 | Bot | Locations | Permissions |\n")
 	txt += md.MD("| :-- |:-----| :----- | :-- | :-------- | :---------- |\n")
 	for _, app := range all {
-		// txt += md.Markdownf(`%s - %s - %s - %s`,
-		// 	app.Manifest.AppID, app.Manifest.Type, app.GrantedLocations, app.GrantedPermissions)
-		txt += md.Markdownf("|%s|%s|%s|%s|%s|%s|\n",
-			app.Manifest.AppID, app.Manifest.Type, app.OAuth2ClientID, app.BotUserID, app.GrantedLocations, app.GrantedPermissions)
+		txt += md.Markdownf("|[%s](%s) (%s)|%s|%s|%s|%s|%s|\n",
+			app.DisplayName, app.HomepageURL, app.AppID, app.Type, app.OAuth2ClientID, app.BotUserID, app.GrantedLocations, app.GrantedPermissions)
 	}
 
 	return apps.NewCallResponse(txt, nil, nil)

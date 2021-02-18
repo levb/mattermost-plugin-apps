@@ -6,8 +6,12 @@ import (
 	"io"
 	"io/ioutil"
 
+	pluginapi "github.com/mattermost/mattermost-plugin-api"
 	"github.com/mattermost/mattermost-plugin-apps/apps"
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/server/config"
+	"github.com/mattermost/mattermost-plugin-apps/server/proxy"
+	"github.com/mattermost/mattermost-plugin-apps/server/store"
+	"github.com/mattermost/mattermost-plugin-apps/server/upstream"
 	"github.com/pkg/errors"
 )
 
@@ -57,29 +61,34 @@ const (
 )
 
 type App struct {
-	API *api.Service
+	conf  config.Service
+	mm    *pluginapi.Client
+	proxy proxy.Service
+	store *store.Service
 }
 
-func NewApp(api *api.Service) *App {
-	return &App{api}
+func NewApp(mm *pluginapi.Client, conf config.Service, proxy proxy.Service, store *store.Service) *App {
+	return &App{
+		conf:  conf,
+		mm:    mm,
+		proxy: proxy,
+		store: store,
+	}
 }
 
-var _ api.Upstream = (*App)(nil)
+var _ upstream.Upstream = (*App)(nil)
 
-func (a *App) MattermostApp() *apps.App {
-	conf := a.API.Configurator.GetConfig()
+func (a *App) App() *apps.App {
+	conf := a.conf.Get()
 	return &apps.App{
-		Manifest: &apps.Manifest{
+		Common: apps.Common{
 			AppID:       AppID,
 			Type:        apps.AppTypeBuiltin,
 			DisplayName: AppDisplayName,
 			Description: AppDescription,
-			RequestedLocations: apps.Locations{
-				apps.LocationCommand,
-			},
 		},
 		BotUserID:   conf.BotUserID,
-		BotUsername: api.BotUsername,
+		BotUsername: config.BotUsername,
 		GrantedLocations: apps.Locations{
 			apps.LocationCommand,
 		},
@@ -89,7 +98,7 @@ func (a *App) MattermostApp() *apps.App {
 func (a *App) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
 	cr := &apps.CallResponse{}
 	switch c.URL {
-	case api.BindingsPath:
+	case config.BindingsPath:
 		cr = a.funcGetBindings(c)
 
 	case PathInfo:

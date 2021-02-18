@@ -7,11 +7,9 @@ import (
 	"fmt"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
-	"github.com/mattermost/mattermost-plugin-apps/server/api/impl/proxy"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/builtin_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/http_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/js/aws_hello"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -63,31 +61,31 @@ func (a *App) installAppCommandForm(c *apps.Call) (*apps.Form, error) {
 }
 
 func (a *App) installAppCommand(call *apps.Call) *apps.CallResponse {
-	id := call.GetStringValue(fieldAppID, "")
-	manifestURL := call.GetStringValue(fieldManifestURL, "")
-	conf := a.API.Configurator.GetConfig()
+	// id := call.GetStringValue(fieldAppID, "")
+	// manifestURL := call.GetStringValue(fieldManifestURL, "")
+	// conf := a.conf.Get()
 
-	var manifest *apps.Manifest
-	switch {
-	case id != "" && manifestURL != "":
-		return apps.NewCallResponse("", nil,
-			errors.Errorf("`--%s` and `--%s` can not be both specified", flagAppID, flagManifestURL))
-	case id == http_hello.AppID:
-		manifest = http_hello.Manifest(conf)
-	case id == builtin_hello.AppID:
-		manifest = builtin_hello.Manifest()
-	case id == aws_hello.AppID:
-		manifest = aws_hello.Manifest()
-	case manifestURL != "":
-		var err error
-		manifest, err = proxy.LoadManifest(manifestURL)
-		if err != nil {
-			return apps.NewCallResponse("", nil, err)
-		}
-	}
+	// var manifest *apps.Manifest
+	// switch {
+	// case id != "" && manifestURL != "":
+	// 	return apps.NewCallResponse("", nil,
+	// 		errors.Errorf("`--%s` and `--%s` can not be both specified", flagAppID, flagManifestURL))
+	// case id == http_hello.AppID:
+	// 	manifest = http_hello.Manifest(conf)
+	// case id == builtin_hello.AppID:
+	// 	manifest = builtin_hello.Manifest()
+	// case id == aws_hello.AppID:
+	// 	manifest = aws_hello.Manifest()
+	// case manifestURL != "":
+	// var err error
+	// manifest, err = proxy.LoadManifest(manifestURL)
+	// if err != nil {
+	// 	return apps.NewCallResponse("", nil, err)
+	// }
+	// }
 
 	return &apps.CallResponse{
-		Type: apps.CallResponseTypeForm,
-		Form: a.installAppForm(manifest),
+		// Type: apps.CallResponseTypeForm,
+		// Form: a.installAppForm(manifest),
 	}
 }

@@ -43,7 +43,7 @@ func (a *App) bindings(call *apps.Call) []*apps.Binding {
 		},
 	}
 
-	user, _ := a.API.Mattermost.User.Get(call.Context.ActingUserID)
+	user, _ := a.mm.User.Get(call.Context.ActingUserID)
 	if user != nil && user.IsSystemAdmin() {
 		commands = append(commands, adminCommands...)
 	}
