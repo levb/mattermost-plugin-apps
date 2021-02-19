@@ -3,7 +3,7 @@
 
 package config
 
-const ManifestsFile = "assets/manifests.json"
+const ManifestsFile = "manifests.json"
 
 // Internal configuration apps.of mattermost-plugin-apps.
 const (

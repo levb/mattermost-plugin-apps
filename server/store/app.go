@@ -154,5 +154,8 @@ func (s *appStore) Delete(appID apps.AppID) error {
 // AddBuiltinApp is not synchronized and should only be used at the plugin
 // initialization time, to "register" builtin apps.
 func (s *appStore) AddBuiltin(app *apps.App) {
+	if s.builtin == nil {
+		s.builtin = map[apps.AppID]*apps.App{}
+	}
 	s.builtin[app.AppID] = app
 }

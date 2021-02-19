@@ -57,7 +57,7 @@ func TestManifestInit(t *testing.T) {
 		{
 			name:        "file happy",
 			data:        ` { "jira301" : "file:test-does-not-exist" }`,
-			expectError: "failed to load global manifest for jira301: open /assets/test-does-not-exist: no such file or directory",
+			expectError: "failed to load global manifest for jira301: open /testassets/test-does-not-exist: no such file or directory",
 		},
 		{
 			name:        "https happy",
@@ -99,7 +99,9 @@ func TestManifestInit(t *testing.T) {
 			}
 
 			f := bytes.NewReader([]byte(tc.data))
-			err := NewService(mm, conf, aws).Manifest.Init(f, "/assets")
+			s := NewService(mm, conf, aws)
+			ms := s.Manifest.(*manifestStore)
+			err := ms.init(f, "/testassets")
 			if tc.expectError == "" {
 				require.Nil(t, err)
 			} else {

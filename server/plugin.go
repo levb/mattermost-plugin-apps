@@ -5,8 +5,6 @@ package main
 
 import (
 	gohttp "net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -66,24 +64,14 @@ func (p *Plugin) OnActivate() error {
 	stored := config.StoredConfig{}
 	_ = p.mm.Configuration.LoadPluginConfiguration(&stored)
 
-	p.aws = aws.NewService(&mm.Log)
-
 	p.conf = config.NewService(mm, p.BuildConfig, botUserID)
 	_ = p.conf.Refresh(&stored)
 
-	p.store = store.NewService(p.mm, p.conf, p.aws)
-	bundlePath, err := p.mm.System.GetBundlePath()
-	if err != nil {
-		return errors.Wrap(err, "can't get bundle path")
-	}
-	assetPath := filepath.Join(bundlePath, "assets")
-	f, err := os.Open(filepath.Join(assetPath, config.ManifestsFile))
-	if err != nil {
-		return errors.Wrap(err, "failed to load global list of available apps")
-	}
-	defer f.Close()
+	p.aws = aws.NewService(&mm.Log)
+	p.aws.Configure(p.conf.Get())
 
-	err = p.store.Manifest.Init(f, assetPath)
+	p.store = store.NewService(p.mm, p.conf, p.aws)
+	err = p.store.Manifest.Init()
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize data store")
 	}

@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -26,7 +27,7 @@ import (
 type Manifest interface {
 	config.Configurable
 
-	Init(manifestsFile io.Reader, assetPath string) error
+	Init() error
 	List() map[apps.AppID]*apps.Manifest
 	Get(apps.AppID) (*apps.Manifest, error)
 	StoreLocal(*apps.Manifest) error
@@ -42,9 +43,22 @@ type manifestStore struct {
 
 var _ Manifest = (*manifestStore)(nil)
 
-func (s *manifestStore) Init(manifestsFile io.Reader, assetPath string) error {
-	conf := s.conf.Get()
-	fmt.Printf("<><> 1 %+v\n", conf.StoredConfig)
+func (s *manifestStore) Init() error {
+	bundlePath, err := s.mm.System.GetBundlePath()
+	if err != nil {
+		return errors.Wrap(err, "can't get bundle path")
+	}
+	assetPath := filepath.Join(bundlePath, "assets")
+	f, err := os.Open(filepath.Join(assetPath, config.ManifestsFile))
+	if err != nil {
+		return errors.Wrap(err, "failed to load global list of available apps")
+	}
+	defer f.Close()
+
+	return s.init(f, assetPath)
+}
+
+func (s *manifestStore) init(manifestsFile io.Reader, assetPath string) error {
 	s.global = map[apps.AppID]*apps.Manifest{}
 
 	// Read in the marketplace-listed manifests from S3, as per versions
@@ -53,16 +67,15 @@ func (s *manifestStore) Init(manifestsFile io.Reader, assetPath string) error {
 	manifestLocations := map[apps.AppID]string{}
 	err := json.NewDecoder(manifestsFile).Decode(&manifestLocations)
 	if err != nil {
-		fmt.Printf("<><> 2 %v\n", err)
 		return err
 	}
 
 	var data []byte
+	conf := s.conf.Get()
 	for appID, loc := range manifestLocations {
 		parts := strings.SplitN(loc, ":", 2)
 		switch {
 		case len(parts) == 1:
-			fmt.Printf("<><> 3 %v\n", conf.AWSManifestBucket)
 			data, err = s.getFromS3(conf.AWSManifestBucket, appID, apps.AppVersion(parts[0]))
 		case len(parts) == 2 && parts[0] == "s3":
 			data, err = s.getFromS3(conf.AWSManifestBucket, appID, apps.AppVersion(parts[1]))
@@ -202,7 +215,6 @@ func (s *manifestStore) DeleteLocal(appID apps.AppID) error {
 // GetManifest returns a manifest file for an app from the S3
 func (s *manifestStore) getFromS3(bucket string, appID apps.AppID, version apps.AppVersion) ([]byte, error) {
 	name := fmt.Sprintf("manifest_%s_%s", appID, version)
-	fmt.Printf("<><> 10 %q %q\n", bucket, name)
 	data, err := s.aws.Client().GetS3(bucket, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to download manifest %s", name)
