@@ -12,6 +12,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/proxy"
 	"github.com/mattermost/mattermost-plugin-apps/server/store"
 	"github.com/mattermost/mattermost-plugin-apps/server/upstream"
+	"github.com/mattermost/mattermost-plugin-apps/server/utils"
 	"github.com/pkg/errors"
 )
 
@@ -131,6 +132,10 @@ func (a *App) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
 
 func (a *App) OneWay(call *apps.Call) error {
 	return nil
+}
+
+func (a *App) GetStatic(path string) ([]byte, error) {
+	return nil, utils.ErrNotFound
 }
 
 func simpleFunc(

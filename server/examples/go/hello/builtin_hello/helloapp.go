@@ -12,6 +12,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/upstream"
+	"github.com/mattermost/mattermost-plugin-apps/server/utils"
 )
 
 const (
@@ -91,4 +92,8 @@ func (h *helloapp) OneWay(call *apps.Call) error {
 		return errors.Errorf("%s is not supported", call.Context.Subject)
 	}
 	return nil
+}
+
+func (h *helloapp) GetStatic(path string) ([]byte, error) {
+	return nil, utils.ErrNotFound
 }

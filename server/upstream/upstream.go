@@ -13,4 +13,5 @@ import (
 type Upstream interface {
 	Roundtrip(call *apps.Call) (io.ReadCloser, error)
 	OneWay(call *apps.Call) error
+	GetStatic(path string) ([]byte, error)
 }

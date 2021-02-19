@@ -3,7 +3,6 @@ package apps
 import (
 	"unicode"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-server/v5/model"
@@ -76,7 +75,7 @@ func (at AppType) IsValid() bool {
 
 type Common struct {
 	AppID   AppID      `json:"app_id"`
-	Type    AppType    `json:"app_type"`
+	Type    AppType    `json:"type"`
 	Version AppVersion `json:"version"`
 
 	DisplayName string `json:"display_name,omitempty"`
@@ -108,10 +107,10 @@ type Manifest struct {
 	RootURL string `json:"root_url,omitempty"`
 
 	// For AWS Apps, we need mappings from Call and static paths to the
-	// respective AWS resources: names for Lambda functions, and bucket/key for
-	// S3 static files.
-	LambdaRoutes map[string]string            `json:"lambda_routes,omitempty"`
-	S3Routes     map[string]s3.GetObjectInput `json:"s3_routes,omitempty"`
+	// respective AWS resources: names for Lambda functions, and S3 key for
+	// S3 static files (the bucket is configured, per instance).
+	FunctionRoutes map[string]string `json:"function_routes,omitempty"`
+	StaticRoutes   map[string]string `json:"static_routes,omitempty"`
 }
 
 // App describes an App installed (or about to be installed) on a Mattermost instance.

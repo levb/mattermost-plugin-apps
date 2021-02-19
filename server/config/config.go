@@ -30,6 +30,7 @@ type StoredConfig struct {
 	AWSAccessKeyID     string `json:"aws_access_key_id,omitempty"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key,omitempty"`
 	AWSManifestBucket  string `json:"aws_manifest_bucket,omitempty"`
+	AWSStaticBucket    string `json:"aws_static_bucket,omitempty"`
 }
 
 type BuildConfig struct {

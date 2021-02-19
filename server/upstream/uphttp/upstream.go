@@ -43,6 +43,10 @@ func (u *Upstream) Roundtrip(call *apps.Call) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
+func (u *Upstream) GetStatic(path string) ([]byte, error) {
+	return httputils.GetFromURL(u.rootURL + path)
+}
+
 func (u *Upstream) invoke(fromMattermostUserID string, call *apps.Call) (*http.Response, error) {
 	if call == nil {
 		return nil, errors.New("empty call is not valid")

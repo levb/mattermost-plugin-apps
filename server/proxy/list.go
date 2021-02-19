@@ -4,7 +4,6 @@
 package proxy
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
@@ -14,8 +13,8 @@ func (p *proxy) ListInstalledApps() map[apps.AppID]*apps.App {
 	return p.store.App.List()
 }
 
-func (p *proxy) ListMarketplaceApps(filter string) []*apps.MarketplaceApp {
-	out := []*apps.MarketplaceApp{}
+func (p *proxy) ListMarketplaceApps(filter string) map[apps.AppID]*apps.MarketplaceApp {
+	out := map[apps.AppID]*apps.MarketplaceApp{}
 
 	for appID, m := range p.store.Manifest.List() {
 		if !appMatchesFilter(m, filter) {
@@ -30,14 +29,8 @@ func (p *proxy) ListMarketplaceApps(filter string) []*apps.MarketplaceApp {
 			marketApp.Enabled = !app.Disabled
 		}
 
-		out = append(out, marketApp)
+		out[appID] = marketApp
 	}
-
-	// Sort by display name, alphabetically.
-	sort.SliceStable(out, func(i, j int) bool {
-		return strings.ToLower(out[i].Manifest.DisplayName) <
-			strings.ToLower(out[j].Manifest.DisplayName)
-	})
 
 	return out
 }

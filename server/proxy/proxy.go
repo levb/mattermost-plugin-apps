@@ -135,7 +135,8 @@ func (p *proxy) upstreamForApp(app *apps.App) (upstream.Upstream, error) {
 		return uphttp.NewUpstream(m.RootURL, app.Secret), nil
 
 	case apps.AppTypeAWS:
-		return upawslambda.NewUpstream(app, m, p.aws), nil
+		conf := p.conf.Get()
+		return upawslambda.NewUpstream(app, m, p.aws, conf.AWSStaticBucket), nil
 
 	default:
 		return nil, errors.Errorf("not a valid app type: %s", m.Type)

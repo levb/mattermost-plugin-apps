@@ -23,7 +23,7 @@ type BuiltinApp interface {
 
 type Service interface {
 	ListInstalledApps() map[apps.AppID]*apps.App
-	ListMarketplaceApps(filter string) []*apps.MarketplaceApp
+	ListMarketplaceApps(filter string) map[apps.AppID]*apps.MarketplaceApp
 
 	InstallApp(*apps.Context, *apps.InInstallApp) (*apps.App, md.MD, error)
 	UninstallApp(*apps.Context, apps.AppID) error

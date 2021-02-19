@@ -30,7 +30,7 @@ func TestManifestInit(t *testing.T) {
 			expectAWS: func(awsClient *mock_awsclient.MockClient) {
 				awsClient.EXPECT().GetS3(
 					gomock.Eq("manifestbucket"), gomock.Eq("manifest_jira_v3.0.0")).Return(
-					[]byte(`{"app_id":"jira", "app_type":"http"}`), nil).Times(1)
+					[]byte(`{"app_id":"jira", "type":"http"}`), nil).Times(1)
 			},
 		},
 		{
@@ -39,7 +39,7 @@ func TestManifestInit(t *testing.T) {
 			expectAWS: func(awsClient *mock_awsclient.MockClient) {
 				awsClient.EXPECT().GetS3(
 					gomock.Eq("manifestbucket"), gomock.Eq("manifest_jira_v3.0.0")).Return(
-					[]byte(`{"app_id":"jira", "app_type":"http"}`), nil).Times(1)
+					[]byte(`{"app_id":"jira", "type":"http"}`), nil).Times(1)
 			},
 		},
 		{
@@ -48,10 +48,10 @@ func TestManifestInit(t *testing.T) {
 			expectAWS: func(awsClient *mock_awsclient.MockClient) {
 				awsClient.EXPECT().GetS3(
 					gomock.Eq("manifestbucket"), gomock.Eq("manifest_jira_v3.0.0")).Return(
-					[]byte(`{"app_id":"jira", "app_type":"http"}`), nil).Times(1)
+					[]byte(`{"app_id":"jira", "type":"http"}`), nil).Times(1)
 				awsClient.EXPECT().GetS3(
 					gomock.Eq("manifestbucket"), gomock.Eq("manifest_jira301_v3.0.1")).Return(
-					[]byte(`{"app_id":"jira301", "app_type":"http"}`), nil).Times(1)
+					[]byte(`{"app_id":"jira301", "type":"http"}`), nil).Times(1)
 			},
 		},
 		{
@@ -75,7 +75,7 @@ func TestManifestInit(t *testing.T) {
 			expectAWS: func(awsClient *mock_awsclient.MockClient) {
 				awsClient.EXPECT().GetS3(
 					gomock.Eq("manifestbucket"), gomock.Eq("manifest_jira_v3.0.0")).Return(
-					[]byte(`{"app_id":"jira", "app_type":"invalid"}`), nil).Times(1)
+					[]byte(`{"app_id":"jira", "type":"invalid"}`), nil).Times(1)
 			},
 			expectError: "invalid type: invalid",
 		},
