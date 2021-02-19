@@ -54,6 +54,7 @@ func Init(router *mux.Router, _ *pluginapi.Client, conf config.Service, _ proxy.
 	handle(r, hello.PathSurvey, h.Survey)
 	handle(r, hello.PathUserJoinedChannel, h.UserJoinedChannel)
 	handle(r, hello.PathPostAsUser, h.PostAsUser)
+	handle(r, hello.PathSubmitSurvey, h.SubmitSurvey)
 }
 
 func Manifest(conf config.Config) *apps.Manifest {

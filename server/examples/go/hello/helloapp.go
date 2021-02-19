@@ -16,6 +16,7 @@ const (
 	PathSubscribeChannel         = "/subscribe"
 	PathSurvey                   = "/survey"
 	PathUserJoinedChannel        = "/user-joined-channel"
+	PathSubmitSurvey             = "/survey-submit"
 )
 
 type HelloApp struct {

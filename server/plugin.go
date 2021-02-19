@@ -68,7 +68,10 @@ func (p *Plugin) OnActivate() error {
 	_ = p.conf.Refresh(&stored)
 
 	p.aws = aws.NewService(&mm.Log)
-	p.aws.Configure(p.conf.Get())
+	err = p.aws.Configure(p.conf.Get())
+	if err != nil {
+		return errors.Wrap(err, "failed to configure AWS access")
+	}
 
 	p.store = store.NewService(p.mm, p.conf, p.aws)
 	err = p.store.Manifest.Init()
@@ -78,7 +81,6 @@ func (p *Plugin) OnActivate() error {
 
 	p.proxy = proxy.NewService(p.mm, p.aws, p.conf, p.store)
 	p.appServices = appservices.NewService(mm, p.conf, p.store)
-
 	p.http = http.NewService(mux.NewRouter(), p.mm, p.conf, p.proxy, p.appServices,
 		oauth.Init,
 		restapi.Init,

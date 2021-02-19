@@ -64,7 +64,7 @@ func (s *manifestStore) init(manifestsFile io.Reader, assetPath string) error {
 	// Read in the marketplace-listed manifests from S3, as per versions
 	// indicated in apps.json. apps.json file contains a map of AppID->manifest
 	// S3 filename (the bucket comes from the config)
-	manifestLocations := map[apps.AppID]string{}
+	manifestLocations := apps.AppVersionMap{}
 	err := json.NewDecoder(manifestsFile).Decode(&manifestLocations)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (s *manifestStore) init(manifestsFile io.Reader, assetPath string) error {
 	var data []byte
 	conf := s.conf.Get()
 	for appID, loc := range manifestLocations {
-		parts := strings.SplitN(loc, ":", 2)
+		parts := strings.SplitN(string(loc), ":", 2)
 		switch {
 		case len(parts) == 1:
 			data, err = s.getFromS3(conf.AWSManifestBucket, appID, apps.AppVersion(parts[0]))
@@ -82,7 +82,7 @@ func (s *manifestStore) init(manifestsFile io.Reader, assetPath string) error {
 		case len(parts) == 2 && parts[0] == "file":
 			data, err = ioutil.ReadFile(filepath.Join(assetPath, parts[1]))
 		case len(parts) == 2 && (parts[0] == "http" || parts[0] == "https"):
-			data, err = httputils.GetFromURL(loc)
+			data, err = httputils.GetFromURL(string(loc))
 		default:
 			return errors.Errorf("failed to load global manifest for %s: %s is invalid", string(appID), loc)
 		}

@@ -1,4 +1,4 @@
-ani// Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved.
 // See License for license information.
 
 package proxy
