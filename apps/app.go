@@ -95,3 +95,21 @@ type MarketplaceApp struct {
 	Enabled   bool                     `json:"enabled"`
 	Labels    []model.MarketplaceLabel `json:"labels,omitempty"`
 }
+
+// Conventions for Apps paths, and field names
+const (
+	DefaultInstallCallPath  = "/install"
+	DefaultBindingsCallPath = "/bindings"
+)
+
+var DefaultInstallCall = &Call{
+	URL: DefaultInstallCallPath,
+	Expand: &Expand{
+		App:              ExpandAll,
+		AdminAccessToken: ExpandAll,
+	},
+}
+
+var DefaultBindingsCall = &Call{
+	URL: DefaultBindingsCallPath,
+}

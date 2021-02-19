@@ -1,4 +1,4 @@
-// Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved.
+ani// Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved.
 // See License for license information.
 
 package proxy
@@ -114,6 +114,17 @@ func (p *proxy) Notify(cc *apps.Context, subj apps.Subject) error {
 }
 
 func (p *proxy) upstreamForApp(app *apps.App) (upstream.Upstream, error) {
+	if app.Type == apps.AppTypeBuiltin {
+		if len(p.builtinUpstreams) == 0 {
+			return nil, errors.Errorf("builtin app not found: %s", app.AppID)
+		}
+		up := p.builtinUpstreams[app.AppID]
+		if up == nil {
+			return nil, errors.Errorf("builtin upstream not found: %s", app.AppID)
+		}
+		return up, nil
+	}
+
 	m, err := p.store.Manifest.Get(app.AppID)
 	if err != nil {
 		return nil, err
@@ -125,16 +136,6 @@ func (p *proxy) upstreamForApp(app *apps.App) (upstream.Upstream, error) {
 
 	case apps.AppTypeAWS:
 		return upawslambda.NewUpstream(app, m, p.aws), nil
-
-	// case apps.AppTypeBuiltin:
-	// 	if len(p.builtinProvisionedApps) == 0 {
-	// 		return nil, errors.Errorf("builtin app not found: %s", app.Manifest.AppID)
-	// 	}
-	// 	up := p.builtinProvisionedApps[app.Manifest.AppID]
-	// 	if up == nil {
-	// 		return nil, errors.Errorf("builtin app not found: %s", app.Manifest.AppID)
-	// 	}
-	// 	return up, nil
 
 	default:
 		return nil, errors.Errorf("not a valid app type: %s", m.Type)
