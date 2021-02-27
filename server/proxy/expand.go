@@ -39,7 +39,7 @@ func (p *proxy) expandCall(inCall *apps.Call, app *apps.App, adminAccessToken st
 
 	cc.BotUserID = app.BotUserID
 	if app.GrantedPermissions.Contains(apps.PermissionActAsBot) {
-		cc.BotAccessToken = app.BotAccessToken
+		cc.ExpandedContext.BotAccessToken = app.BotAccessToken
 	}
 
 	if cc.ActingUserID != "" {
@@ -54,7 +54,7 @@ func (p *proxy) expandCall(inCall *apps.Call, app *apps.App, adminAccessToken st
 
 			if expand.ActingUserAccessToken.Any() {
 				if t != nil {
-					cc.ActingUserAccessToken = t.AccessToken
+					cc.ExpandedContext.ActingUserAccessToken = t.AccessToken
 				} else if expand.ActingUserAccessToken.IsRequired() {
 					return nil, errOAuthRequired
 				}
@@ -74,7 +74,7 @@ func (p *proxy) expandCall(inCall *apps.Call, app *apps.App, adminAccessToken st
 	// out of expand?
 	// TODO: Implement collecting user consent for the admin token, in-line?
 	if expand.AdminAccessToken.Any() {
-		cc.AdminAccessToken = adminAccessToken
+		cc.ExpandedContext.AdminAccessToken = adminAccessToken
 	}
 
 	if expand.Channel != "" && cc.ChannelID != "" && cache.channel == nil {
@@ -118,18 +118,15 @@ func (p *proxy) expandCall(inCall *apps.Call, app *apps.App, adminAccessToken st
 		cache.user = user
 	}
 
-	cc.ExpandedContext = apps.ExpandedContext{
-		BotAccessToken: app.BotAccessToken,
-
-		ActingUser: stripUser(cache.actingUser, expand.ActingUser),
-		App:        stripApp(app, expand.App),
-		Channel:    stripChannel(cache.channel, expand.Channel),
-		Post:       stripPost(cache.post, expand.Post),
-		RootPost:   stripPost(cache.rootPost, expand.RootPost),
-		Team:       stripTeam(cache.team, expand.Team),
-		User:       stripUser(cache.user, expand.User),
-		// TODO Mentioned
-	}
+	cc.ExpandedContext.BotAccessToken = app.BotAccessToken
+	cc.ExpandedContext.ActingUser = stripUser(cache.actingUser, expand.ActingUser)
+	cc.ExpandedContext.App = stripApp(app, expand.App)
+	cc.ExpandedContext.Channel = stripChannel(cache.channel, expand.Channel)
+	cc.ExpandedContext.Post = stripPost(cache.post, expand.Post)
+	cc.ExpandedContext.RootPost = stripPost(cache.rootPost, expand.RootPost)
+	cc.ExpandedContext.Team = stripTeam(cache.team, expand.Team)
+	cc.ExpandedContext.User = stripUser(cache.user, expand.User)
+	// TODO Mentioned
 
 	call.Context = &cc
 	return &call, nil

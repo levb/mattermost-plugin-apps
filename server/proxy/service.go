@@ -17,7 +17,7 @@ import (
 )
 
 type BuiltinApp interface {
-	upstream.Upstream
+	// may also implement upstream.Upstream
 	App() *apps.App
 }
 
@@ -38,7 +38,7 @@ type Service interface {
 	StartOAuthConnect(userID string, _ apps.AppID, callOnComplete *apps.Call) (connectURL string, _ error)
 	HandleOAuth(http.ResponseWriter, *http.Request)
 
-	AddBuiltin(BuiltinApp)
+	InitBuiltinApps(...BuiltinApp)
 }
 
 type proxy struct {
@@ -68,13 +68,19 @@ func NewService(mm *pluginapi.Client, aws aws.Service, conf config.Service, stor
 	}
 }
 
-func (p *proxy) AddBuiltin(builtinApp BuiltinApp) {
-	app := builtinApp.App()
+func (p *proxy) InitBuiltinApps(builtinApps ...BuiltinApp) {
+	for _, b := range builtinApps {
+		app := b.App()
+		if app != nil {
+			p.store.App.InitBuiltin(app)
+		}
 
-	p.store.App.AddBuiltin(app)
-
-	if p.builtinUpstreams == nil {
-		p.builtinUpstreams = map[apps.AppID]upstream.Upstream{}
+		up, ok := b.(upstream.Upstream)
+		if ok {
+			if p.builtinUpstreams == nil {
+				p.builtinUpstreams = map[apps.AppID]upstream.Upstream{}
+			}
+			p.builtinUpstreams[app.AppID] = up
+		}
 	}
-	p.builtinUpstreams[app.AppID] = builtinApp
 }

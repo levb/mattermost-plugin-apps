@@ -78,6 +78,10 @@ func (u *Upstream) post(fromMattermostUserID string, url string, msg interface{}
 	if err != nil {
 		return nil, err
 	}
+
+	// For external HTTP apps, we should use "Authorization". But calling back
+	// to a Mattermost plugin Authorization is already used for the session token.
+	// TODO: need an HTTP app prop to use a different Authorization header.
 	req.Header.Set(apps.OutgoingAuthHeader, "Bearer "+jwtoken)
 	req.Header.Set("Content-Type", "application/json")
 

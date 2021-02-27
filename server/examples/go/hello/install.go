@@ -25,6 +25,8 @@ func (h *HelloApp) install(appID apps.AppID, channelDisplayName string, c *apps.
 		return "", errors.New("not supported")
 	}
 
+	fmt.Printf("<><> hello install: %+v\n", c.Context)
+
 	bot := mmclient.AsBot(c.Context)
 	adminClient := mmclient.AsAdmin(c.Context)
 
@@ -86,8 +88,10 @@ func (h *HelloApp) install(appID apps.AppID, channelDisplayName string, c *apps.
 	})
 	bot.DM(c.Context.ActingUserID, "Posted welcome message to channel.")
 
-	// TODO this should be done using the REST Subs API, for now mock with direct use
-	_, err := adminClient.Subscribe(&apps.Subscription{
+	_, err := bot.KVSet("1", "test", map[string]interface{}{"value": "somevalue"})
+	fmt.Printf("<><> hello subscribe !!!! test err: %v\n", err)
+
+	_, err = bot.Subscribe(&apps.Subscription{
 		AppID:     appID,
 		Subject:   apps.SubjectUserJoinedChannel,
 		ChannelID: channel.Id,
@@ -101,6 +105,7 @@ func (h *HelloApp) install(appID apps.AppID, channelDisplayName string, c *apps.
 			},
 		},
 	})
+	fmt.Printf("<><> hello subscribe err: %v\n", err)
 	if err != nil {
 		return "", err
 	}

@@ -14,7 +14,6 @@ import (
 
 	"github.com/mattermost/mattermost-plugin-apps/awsclient/mock_awsclient"
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
-	"github.com/mattermost/mattermost-plugin-apps/server/mock/mock_aws"
 )
 
 func TestManifestInit(t *testing.T) {
@@ -87,21 +86,19 @@ func TestManifestInit(t *testing.T) {
 			pluginAPI := &plugintest.API{}
 			mm := pluginapi.NewClient(pluginAPI)
 			awsClient := mock_awsclient.NewMockClient(ctrl)
-			aws := mock_aws.NewMockService(ctrl)
 			conf := config.NewTestConfigurator(&config.Config{
 				StoredConfig: &config.StoredConfig{
 					AWSManifestBucket: "manifestbucket",
 				},
 			})
-			aws.EXPECT().Client().AnyTimes().Return(awsClient)
 			if tc.expectAWS != nil {
 				tc.expectAWS(awsClient)
 			}
 
 			f := bytes.NewReader([]byte(tc.data))
-			s := NewService(mm, conf, aws)
+			s := NewService(mm, conf)
 			ms := s.Manifest.(*manifestStore)
-			err := ms.init(f, "/testassets")
+			err := ms.initGlobal(awsClient, f, "/testassets")
 			if tc.expectError == "" {
 				require.Nil(t, err)
 			} else {

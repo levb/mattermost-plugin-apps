@@ -12,50 +12,9 @@ import (
 // Allowed characters are letters, numbers, underscores and hyphens.
 type AppID string
 
-func (id AppID) IsValid() error {
-	for _, c := range id {
-		if unicode.IsLetter(c) {
-			continue
-		}
-
-		if unicode.IsNumber(c) {
-			continue
-		}
-
-		if c == '-' || c == '_' {
-			continue
-		}
-
-		return errors.Errorf("invalid character %v in appID", c)
-	}
-
-	return nil
-}
-
 // AppVersion is the version of a Mattermost App.
 // Allowed characters are letters, numbers, underscores and hyphens.
 type AppVersion string
-
-func (v AppVersion) IsValid() error {
-	for _, c := range v {
-		if unicode.IsLetter(c) {
-			continue
-		}
-
-		if unicode.IsNumber(c) {
-			continue
-		}
-
-		if c == '-' || c == '_' {
-			continue
-		}
-
-		return errors.Errorf("invalid character %v in appVersion", c)
-	}
-
-	return nil
-}
-
 type AppVersionMap map[AppID]AppVersion
 
 type AppType string
@@ -66,12 +25,6 @@ const (
 	AppTypeAWS     = "aws"
 	AppTypeBuiltin = "builtin"
 )
-
-func (at AppType) IsValid() bool {
-	return at == AppTypeHTTP ||
-		at == AppTypeAWS ||
-		at == AppTypeBuiltin
-}
 
 type Common struct {
 	AppID   AppID      `json:"app_id"`
@@ -163,4 +116,42 @@ var DefaultInstallCall = &Call{
 
 var DefaultBindingsCall = &Call{
 	URL: DefaultBindingsCallPath,
+}
+
+func (at AppType) IsValid() bool {
+	return at == AppTypeHTTP ||
+		at == AppTypeAWS ||
+		at == AppTypeBuiltin
+}
+
+func (id AppID) IsValid() error {
+	for _, c := range id {
+		if unicode.IsLetter(c) {
+			continue
+		}
+		if unicode.IsNumber(c) {
+			continue
+		}
+		if c == '-' || c == '_' {
+			continue
+		}
+		return errors.Errorf("invalid character %v in appID", c)
+	}
+	return nil
+}
+
+func (v AppVersion) IsValid() error {
+	for _, c := range v {
+		if unicode.IsLetter(c) {
+			continue
+		}
+		if unicode.IsNumber(c) {
+			continue
+		}
+		if c == '-' || c == '_' {
+			continue
+		}
+		return errors.Errorf("invalid character %v in appVersion", c)
+	}
+	return nil
 }

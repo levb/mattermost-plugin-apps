@@ -9,14 +9,14 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func (a *App) clean(call *apps.Call) *apps.CallResponse {
+func (a *builtinApp) clean(call *apps.Call) *apps.CallResponse {
 	_ = a.mm.KV.DeleteAll()
 	_ = a.conf.StoreConfig(&config.StoredConfig{})
 	txt := md.MD("Deleted all KV records and emptied the config.")
 	return apps.NewCallResponse(txt, nil, nil)
 }
 
-// func (a *App) debugInstall(call *api.Call) (md.MD, error) {
+// func (a *builtinApp) debugInstall(call *api.Call) (md.MD, error) {
 // 	appID := api.AppID(call.GetStringValue(fieldExampleApp, ""))
 // 	fmt.Printf("<><> debugInstall 1: appID: %s\n", appID)
 

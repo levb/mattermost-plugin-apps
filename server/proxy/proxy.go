@@ -19,7 +19,7 @@ import (
 )
 
 func (p *proxy) Call(adminAccessToken string, call *apps.Call) (*apps.Call, *apps.CallResponse) {
-	fmt.Printf("<><> Call 1: %s %q\n", call.URL, call.Type)
+	fmt.Printf("<><> Call: --URL: %s %s, admin token: %s (%s)\n", call.URL, call.Type, adminAccessToken, call.Context.AdminAccessToken)
 	conf := p.conf.Get()
 	app, err := p.store.App.Get(call.Context.AppID)
 	if err != nil {
@@ -27,10 +27,10 @@ func (p *proxy) Call(adminAccessToken string, call *apps.Call) (*apps.Call, *app
 	}
 
 	oauth := p.newMattermostOAuthenticator(app)
+	fmt.Printf("<><> Call: 2: expand: %+v\n", call.Expand)
 	call, err = p.expandCall(call, app, adminAccessToken, oauth, nil)
 	if err == errOAuthRequired {
 		connectURL := oauth.GetConnectURL()
-		fmt.Printf("<><> Call 2: connectURL: %q, %v\n", connectURL, err)
 
 		post := &model.Post{
 			UserId:    conf.BotUserID,
@@ -38,8 +38,7 @@ func (p *proxy) Call(adminAccessToken string, call *apps.Call) (*apps.Call, *app
 			Message:   fmt.Sprintf("If you are not automatically redirected, please click [here](%s) to connect.", connectURL),
 		}
 		p.mm.Post.SendEphemeralPost(call.Context.ActingUserID, post)
-		err = p.mm.Post.DM(conf.BotUserID, call.Context.ActingUserID, post)
-		fmt.Printf("<><> Call 3: %v\n", err)
+		_ = p.mm.Post.DM(conf.BotUserID, call.Context.ActingUserID, post)
 		return call, &apps.CallResponse{
 			Type:          apps.CallResponseTypeNavigate,
 			NavigateToURL: connectURL,
@@ -48,13 +47,13 @@ func (p *proxy) Call(adminAccessToken string, call *apps.Call) (*apps.Call, *app
 	if err != nil {
 		return call, apps.NewErrorCallResponse(err)
 	}
+	fmt.Printf("<><> Call: 3: expanded admin token: %+v\n", call.Context.AdminAccessToken)
 
 	up, err := p.upstreamForApp(app)
 	if err != nil {
 		return call, apps.NewErrorCallResponse(err)
 	}
 	cr := upstream.Call(up, call)
-	fmt.Printf("<><> Call 4: %s done: %q: %q %q\n", call.URL, cr.Type, cr.Markdown, cr.ErrorText)
 
 	// TODO: the user-agents do not yet support Navigate, so post messages with the URL
 	if cr.Type == apps.CallResponseTypeNavigate {

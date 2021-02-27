@@ -21,6 +21,7 @@ func as(id, token string, cc *apps.Context) *Client {
 }
 
 func AsBot(cc *apps.Context) *Client {
+	fmt.Printf("<><> AsBot: %q %q\n", cc.BotUserID, cc.BotAccessToken)
 	return as(cc.BotUserID, cc.BotAccessToken, cc)
 }
 

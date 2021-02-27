@@ -2,6 +2,7 @@ package restapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/mattermost/mattermost-server/v5/model"
@@ -36,9 +37,11 @@ func (a *restapi) handleSubscribeCore(w http.ResponseWriter, r *http.Request, is
 		_, _ = w.Write(resp.ToJSON())
 	}()
 
+	fmt.Printf("<><> handleSubscribeCore: 1\n")
 	actingUserID = r.Header.Get("Mattermost-User-ID")
 
 	if actingUserID == "" {
+		fmt.Printf("<><> handleSubscribeCore: 2 not logged in\n")
 		err = errors.New("user not logged in")
 		status = http.StatusUnauthorized
 		return
@@ -46,13 +49,15 @@ func (a *restapi) handleSubscribeCore(w http.ResponseWriter, r *http.Request, is
 
 	// TODO check for sysadmin
 	if !a.mm.User.HasPermissionTo(actingUserID, model.PERMISSION_MANAGE_SYSTEM) {
+		fmt.Printf("<><> handleSubscribeCore: 3 not sysadmin\n")
 		http.Error(w, errors.New("forbidden").Error(), http.StatusForbidden)
 		return
 	}
 
 	var sub apps.Subscription
 	if err = json.NewDecoder(r.Body).Decode(&sub); err != nil {
-		status = http.StatusUnauthorized
+		fmt.Printf("<><> handleSubscribeCore: 4 failed to decode\n")
+		status = http.StatusBadRequest
 		return
 	}
 
@@ -63,6 +68,7 @@ func (a *restapi) handleSubscribeCore(w http.ResponseWriter, r *http.Request, is
 	} else {
 		err = a.appservices.Unsubscribe(&sub)
 	}
+	fmt.Printf("<><> handleSubscribeCore: 5 %v\n", err)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

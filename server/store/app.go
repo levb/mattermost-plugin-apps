@@ -7,6 +7,7 @@ import (
 	"crypto/sha1" // nolint:gosec
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -22,20 +23,33 @@ type App interface {
 	List() map[apps.AppID]*apps.App
 	Store(*apps.App) error
 	Delete(apps.AppID) error
-	AddBuiltin(*apps.App)
+	InitBuiltin(...*apps.App)
 }
 
 type appStore struct {
 	*Service
 
-	installed map[apps.AppID]*apps.App
-	builtin   map[apps.AppID]*apps.App
+	mutex sync.RWMutex
+
+	installed        map[apps.AppID]*apps.App
+	builtinInstalled map[apps.AppID]*apps.App
 }
 
 var _ App = (*appStore)(nil)
 
+func (s *appStore) InitBuiltin(builtinApps ...*apps.App) {
+	s.mutex.Lock()
+	if s.builtinInstalled == nil {
+		s.builtinInstalled = map[apps.AppID]*apps.App{}
+	}
+	for _, app := range builtinApps {
+		s.builtinInstalled[app.AppID] = app
+	}
+	s.mutex.Unlock()
+}
+
 func (s *appStore) Configure(conf config.Config) error {
-	s.installed = map[apps.AppID]*apps.App{}
+	newInstalled := map[apps.AppID]*apps.App{}
 
 	for id, key := range conf.InstalledApps {
 		var app *apps.App
@@ -49,18 +63,27 @@ func (s *appStore) Configure(conf config.Config) error {
 				fmt.Sprintf("failed to load app %s: key %s not found", id, prefixInstalledApp+key))
 		}
 
-		s.installed[apps.AppID(id)] = app
+		newInstalled[apps.AppID(id)] = app
 	}
+
+	s.mutex.Lock()
+	s.installed = newInstalled
+	s.mutex.Unlock()
 
 	return nil
 }
 
 func (s *appStore) Get(appID apps.AppID) (*apps.App, error) {
-	app, ok := s.installed[appID]
+	s.mutex.RLock()
+	installed := s.installed
+	builtin := s.builtinInstalled
+	s.mutex.RUnlock()
+
+	app, ok := builtin[appID]
 	if ok {
 		return app, nil
 	}
-	app, ok = s.builtin[appID]
+	app, ok = installed[appID]
 	if ok {
 		return app, nil
 	}
@@ -68,26 +91,22 @@ func (s *appStore) Get(appID apps.AppID) (*apps.App, error) {
 }
 
 func (s *appStore) List() map[apps.AppID]*apps.App {
+	s.mutex.RLock()
+	installed := s.installed
+	builtin := s.builtinInstalled
+	s.mutex.RUnlock()
+
 	out := map[apps.AppID]*apps.App{}
-	for appID, app := range s.installed {
+	for appID, app := range installed {
 		out[appID] = app
 	}
-
-	for appID, app := range s.builtin {
-		_, ok := s.installed[appID]
-		if !ok {
-			out[appID] = app
-		}
+	for appID, app := range builtin {
+		out[appID] = app
 	}
 	return out
 }
 
 func (s *appStore) Store(app *apps.App) error {
-	_, ok := s.installed[app.AppID]
-	if ok {
-		return errors.Errorf("failed to store: builtin app %s is read-only", app.AppID)
-	}
-
 	conf := s.conf.Get()
 	prevSHA := conf.InstalledApps[string(app.AppID)]
 
@@ -97,37 +116,54 @@ func (s *appStore) Store(app *apps.App) error {
 	}
 	sha := fmt.Sprintf("%x", sha1.Sum(data)) // nolint:gosec
 	if sha == prevSHA {
+		// no change in the data
 		return nil
 	}
-
 	_, err = s.mm.KV.Set(prefixInstalledApp+sha, app)
 	if err != nil {
 		return err
 	}
+
+	s.mutex.RLock()
+	installed := s.installed
+	s.mutex.RUnlock()
+	updatedInstalled := map[apps.AppID]*apps.App{}
+	for k, v := range installed {
+		if k != app.AppID {
+			updatedInstalled[k] = v
+		}
+	}
+	updatedInstalled[app.AppID] = app
+	s.mutex.Lock()
+	s.installed = updatedInstalled
+	s.mutex.Unlock()
+
+	sc := *conf.StoredConfig
 	updated := map[string]string{}
-	for k, v := range conf.LocalManifests {
-		updated[k] = v
+	for k, v := range conf.InstalledApps {
+		// delete prevSHA from the list by skipping
+		if v != prevSHA {
+			updated[k] = v
+		}
 	}
 	updated[string(app.AppID)] = sha
-	sc := *conf.StoredConfig
 	sc.InstalledApps = updated
 	err = s.conf.StoreConfig(&sc)
 	if err != nil {
 		return err
 	}
 
-	err = s.mm.KV.Delete(prefixInstalledApp + prevSHA)
-	if err != nil {
-		return err
-	}
-
+	_ = s.mm.KV.Delete(prefixInstalledApp + prevSHA)
 	return nil
 }
 
 func (s *appStore) Delete(appID apps.AppID) error {
-	_, ok := s.installed[appID]
+	s.mutex.RLock()
+	installed := s.installed
+	s.mutex.RUnlock()
+	_, ok := installed[appID]
 	if ok {
-		return errors.Errorf("failed to delete: builtin app %s is read-only", appID)
+		return errors.Wrap(utils.ErrNotFound, string(appID))
 	}
 
 	conf := s.conf.Get()
@@ -140,22 +176,23 @@ func (s *appStore) Delete(appID apps.AppID) error {
 	if err != nil {
 		return err
 	}
+
+	updatedInstalled := map[apps.AppID]*apps.App{}
+	for k, v := range installed {
+		if k != appID {
+			updatedInstalled[k] = v
+		}
+	}
+	s.mutex.Lock()
+	s.installed = updatedInstalled
+	s.mutex.Unlock()
+
+	sc := *conf.StoredConfig
 	updated := map[string]string{}
 	for k, v := range conf.InstalledApps {
 		updated[k] = v
 	}
 	delete(updated, string(appID))
-	sc := *conf.StoredConfig
 	sc.InstalledApps = updated
-
 	return s.conf.StoreConfig(&sc)
-}
-
-// AddBuiltinApp is not synchronized and should only be used at the plugin
-// initialization time, to "register" builtin apps.
-func (s *appStore) AddBuiltin(app *apps.App) {
-	if s.builtin == nil {
-		s.builtin = map[apps.AppID]*apps.App{}
-	}
-	s.builtin[app.AppID] = app
 }

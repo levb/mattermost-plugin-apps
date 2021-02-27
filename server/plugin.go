@@ -4,7 +4,9 @@
 package main
 
 import (
+	"fmt"
 	gohttp "net/http"
+	"net/http/httputil"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -20,6 +22,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/builtin_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello/http_hello"
+	"github.com/mattermost/mattermost-plugin-apps/server/examples/js/aws_hello"
 	"github.com/mattermost/mattermost-plugin-apps/server/http"
 	"github.com/mattermost/mattermost-plugin-apps/server/http/oauth"
 	"github.com/mattermost/mattermost-plugin-apps/server/http/restapi"
@@ -61,22 +64,14 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "failed to ensure bot account")
 	}
 
-	stored := config.StoredConfig{}
-	_ = p.mm.Configuration.LoadPluginConfiguration(&stored)
-
 	p.conf = config.NewService(mm, p.BuildConfig, botUserID)
-	_ = p.conf.Refresh(&stored)
-
 	p.aws = aws.NewService(&mm.Log)
-	err = p.aws.Configure(p.conf.Get())
-	if err != nil {
-		return errors.Wrap(err, "failed to configure AWS access")
-	}
+	p.store = store.NewService(p.mm, p.conf)
 
-	p.store = store.NewService(p.mm, p.conf, p.aws)
-	err = p.store.Manifest.Init()
+	// OnConfigurationChange updates aws and store with config values
+	err = p.OnConfigurationChange()
 	if err != nil {
-		return errors.Wrap(err, "failed to initialize data store")
+		return errors.Wrap(err, "failed to obtain plugin configuration")
 	}
 
 	p.proxy = proxy.NewService(p.mm, p.aws, p.conf, p.store)
@@ -87,10 +82,23 @@ func (p *Plugin) OnActivate() error {
 		http_hello.Init,
 	)
 
-	p.proxy.AddBuiltin(
-		builtin.NewApp(p.mm, p.conf, p.proxy, p.store))
-	p.proxy.AddBuiltin(
-		builtin_hello.NewHelloApp())
+	// Initialize the list of available apps (manifests).
+	err = p.store.Manifest.InitGlobal(p.aws.Client())
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize data store")
+	}
+	p.store.Manifest.InitBuiltin(
+		aws_hello.Manifest(),
+		// builtin - not in the list, to hide it from `apps list`
+		builtin_hello.Manifest(),
+		// http_hello - not in the list, can be `apps install developer SITEURL/plugins/com.mattermost.apps/example/hello/mattermost-app.json
+	)
+
+	// Initialize the list of installed apps.
+	p.proxy.InitBuiltinApps(
+		builtin_hello.NewHelloApp(),
+		builtin.NewBuiltinApp(p.mm, p.conf, p.proxy, p.store),
+	)
 
 	return nil
 }
@@ -111,6 +119,8 @@ func (p *Plugin) OnConfigurationChange() error {
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w gohttp.ResponseWriter, req *gohttp.Request) {
+	bb, _ := httputil.DumpRequest(req, false)
+	fmt.Printf("<><> ServeHTTP: %s\n", string(bb))
 	p.http.ServeHTTP(c, w, req)
 }
 

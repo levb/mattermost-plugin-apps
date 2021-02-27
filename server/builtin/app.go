@@ -11,7 +11,6 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/proxy"
 	"github.com/mattermost/mattermost-plugin-apps/server/store"
-	"github.com/mattermost/mattermost-plugin-apps/server/upstream"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils"
 	"github.com/pkg/errors"
 )
@@ -23,53 +22,51 @@ const (
 )
 
 const (
-	CommandBindings   = "bindings"
-	CommandClean      = "clean"
-	CommandConnect    = "connect"
-	CommandDebug      = "debug"
-	CommandDisconnect = "disconnect"
-	CommandList       = "list"
-	CommandInfo       = "info"
-	CommandInstall    = "install"
+	CommandBindings    = "bindings"
+	CommandClean       = "clean"
+	CommandConnect     = "connect"
+	CommandDebug       = "debug"
+	CommandDisconnect  = "disconnect"
+	CommandList        = "list"
+	CommandInfo        = "info"
+	CommandInstall     = "install"
+	CommandMarketplace = "marketplace"
+	CommandDeveloper   = "developer"
 )
 
 const (
-	fieldAppID              = "app_id"
-	fieldExampleApp         = "example"
-	fieldManifestURL        = "manifest_url"
-	fieldRequireUserConsent = "require_consent"
-	fieldSecret             = "secret"
+	contextInstallAppID = "install_app_id"
+
+	fURL                = "url"
+	fConsentPermissions = "consent_permissions"
+	fConsentLocations   = "consent_locations"
+	fRequireUserConsent = "require_user_consent"
+	fSecret             = "secret"
+	fAppID              = "app"
+	fUserID             = "user"
 )
 
 const (
-	flagAppID              = "app"
-	flagExampleApp         = "example"
-	flagManifestURL        = "manifest"
-	flagRequireUserConsent = "require-consent"
-	flagSecret             = "secret"
-	flagUserID             = "user"
+	PathConnect            = "/connect"
+	PathDebugBindings      = "/debug-bindings"
+	PathDebugClean         = "/debug-clean"
+	PathInstallMarketplace = "/install-marketplace"
+	PathInstallDeveloper   = "/install-developer"
+	PathInstallApp         = "/install-app"
+	PathDisconnect         = "/disconnect"
+	PathInfo               = "/info"
+	PathList               = "/list"
 )
 
-const (
-	PathConnect           = "/connect"
-	PathDebugBindings     = "/debug-bindings"
-	PathDebugClean        = "/debug-clean"
-	PathInstallApp        = "/install-app"
-	PathInstallAppCommand = "/install-app-command"
-	PathDisconnect        = "/disconnect"
-	PathInfo              = "/info"
-	PathList              = "/list"
-)
-
-type App struct {
+type builtinApp struct {
 	conf  config.Service
 	mm    *pluginapi.Client
 	proxy proxy.Service
 	store *store.Service
 }
 
-func NewApp(mm *pluginapi.Client, conf config.Service, proxy proxy.Service, store *store.Service) *App {
-	return &App{
+func NewBuiltinApp(mm *pluginapi.Client, conf config.Service, proxy proxy.Service, store *store.Service) *builtinApp {
+	return &builtinApp{
 		conf:  conf,
 		mm:    mm,
 		proxy: proxy,
@@ -77,9 +74,7 @@ func NewApp(mm *pluginapi.Client, conf config.Service, proxy proxy.Service, stor
 	}
 }
 
-var _ upstream.Upstream = (*App)(nil)
-
-func (a *App) App() *apps.App {
+func (a *builtinApp) App() *apps.App {
 	conf := a.conf.Get()
 	return &apps.App{
 		Common: apps.Common{
@@ -87,6 +82,7 @@ func (a *App) App() *apps.App {
 			Type:        apps.AppTypeBuiltin,
 			DisplayName: AppDisplayName,
 			Description: AppDescription,
+			Version:     apps.AppVersion(conf.BuildConfig.BuildHashShort),
 		},
 		BotUserID:   conf.BotUserID,
 		BotUsername: config.BotUsername,
@@ -96,28 +92,30 @@ func (a *App) App() *apps.App {
 	}
 }
 
-func (a *App) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
+func (a *builtinApp) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
 	cr := &apps.CallResponse{}
 	switch c.URL {
 	case config.BindingsPath:
 		cr = a.funcGetBindings(c)
 
 	case PathInfo:
-		cr = simpleFunc(a.infoForm, a.info)(c)
+		cr = handle(a.infoForm, a.info, nil)(c)
 	case PathList:
-		cr = simpleFunc(a.listForm, a.list)(c)
+		cr = handle(a.listForm, a.list, nil)(c)
 	case PathDebugClean:
-		cr = simpleFunc(nil, a.clean)(c)
+		cr = handle(nil, a.clean, nil)(c)
 
-	case PathConnect:
-		cr = simpleFunc(a.connectForm, a.connect)(c)
-	case PathDisconnect:
-		cr = simpleFunc(a.connectForm, a.disconnect)(c)
+	// case PathConnect:
+	// 	cr = simpleFunc(a.connectForm, a.connect, nil)(c)
+	// case PathDisconnect:
+	// 	cr = simpleFunc(a.connectForm, a.disconnect, nil)(c)
 
-	case PathInstallAppCommand:
-		cr = simpleFunc(a.installAppCommandForm, a.installAppCommand)(c)
+	case PathInstallMarketplace:
+		cr = handle(a.installMarketplaceCommandForm, a.installMarketplaceCommand, a.installMarketplaceLookup)(c)
+	case PathInstallDeveloper:
+		cr = handle(a.installDeveloperCommandForm, a.installDeveloperCommand, nil)(c)
 	case PathInstallApp:
-		cr = simpleFunc(nil, a.installApp)(c)
+		cr = handle(a.installAppForm, a.installApp, nil)(c)
 
 	default:
 		return nil, errors.Errorf("%s is not found", c.URL)
@@ -130,38 +128,46 @@ func (a *App) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
 	return ioutil.NopCloser(bytes.NewReader(bb)), nil
 }
 
-func (a *App) OneWay(call *apps.Call) error {
+func (a *builtinApp) OneWay(call *apps.Call) error {
 	return nil
 }
 
-func (a *App) GetStatic(path string) ([]byte, error) {
+func (a *builtinApp) GetStatic(path string) ([]byte, error) {
 	return nil, utils.ErrNotFound
 }
 
-func simpleFunc(
-	formf func(*apps.Call) (*apps.Form, error),
-	submitf func(*apps.Call) *apps.CallResponse) func(call *apps.Call) *apps.CallResponse {
+func handle(
+	formf func(*apps.Call) *apps.CallResponse,
+	submitf func(*apps.Call) *apps.CallResponse,
+	lookupf func(*apps.Call) []*apps.SelectOption) func(call *apps.Call) *apps.CallResponse {
 	return func(call *apps.Call) *apps.CallResponse {
 		switch call.Type {
 		case apps.CallTypeForm:
-			form := &apps.Form{}
 			if formf != nil {
-				var err error
-				form, err = formf(call)
-				if err != nil {
-					return apps.NewErrorCallResponse(err)
-				}
+				return formf(call)
 			}
 			return &apps.CallResponse{
 				Type: apps.CallResponseTypeForm,
-				Form: form,
+				Form: &apps.Form{},
 			}
 
 		case apps.CallTypeSubmit:
-			return submitf(call)
+			if submitf != nil {
+				return submitf(call)
+			}
 
-		default:
-			return apps.NewErrorCallResponse(errors.New("not supported"))
+		case apps.CallTypeLookup:
+			resp := &apps.CallResponse{}
+			if lookupf != nil {
+				options := lookupf(call)
+				if len(options) != 0 {
+					resp.Data = map[string]interface{}{
+						"items": options,
+					}
+				}
+			}
+			return resp
 		}
+		return apps.NewErrorCallResponse(errors.New("not supported"))
 	}
 }

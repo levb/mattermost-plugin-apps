@@ -9,16 +9,19 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func (a *App) infoForm(c *apps.Call) (*apps.Form, error) {
-	return &apps.Form{
-		Title: "Apps proxy info",
-		Call: &apps.Call{
-			URL: PathInfo,
+func (a *builtinApp) infoForm(c *apps.Call) *apps.CallResponse {
+	return &apps.CallResponse{
+		Type: apps.CallResponseTypeForm,
+		Form: &apps.Form{
+			Title: "Apps proxy info",
+			Call: &apps.Call{
+				URL: PathInfo,
+			},
 		},
-	}, nil
+	}
 }
 
-func (a *App) info(call *apps.Call) *apps.CallResponse {
+func (a *builtinApp) info(call *apps.Call) *apps.CallResponse {
 	conf := a.conf.Get()
 	resp := md.Markdownf("Mattermost Cloud Apps plugin version: %s, "+
 		"[%s](https://github.com/mattermost/%s/commit/%s), built %s\n",

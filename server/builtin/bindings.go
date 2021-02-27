@@ -4,11 +4,11 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/apps"
 )
 
-func (a *App) funcGetBindings(call *apps.Call) *apps.CallResponse {
+func (a *builtinApp) funcGetBindings(call *apps.Call) *apps.CallResponse {
 	return apps.NewCallResponse("", a.bindings(call), nil)
 }
 
-func (a *App) bindings(call *apps.Call) []*apps.Binding {
+func (a *builtinApp) bindings(call *apps.Call) []*apps.Binding {
 	simple := func(label, path, hint, descr string) *apps.Binding {
 		return &apps.Binding{
 			Label:       label,
@@ -22,14 +22,23 @@ func (a *App) bindings(call *apps.Call) []*apps.Binding {
 	}
 
 	commands := []*apps.Binding{
-		simple(CommandInfo, PathInfo, "", "displays Apps plugin info"),
-		simple(CommandList, PathList, "", "displays Apps plugin info"),
+		simple(CommandInfo, PathInfo, "", "display Apps plugin info"),
+		simple(CommandList, PathList, "", "display Apps plugin info"),
 		simple(CommandConnect, PathConnect, "[AppID]", "Connect an App to your Mattermost account"),
 		simple(CommandDisconnect, PathDisconnect, "[AppID]", "Disconnect an App from your Mattermost account"),
 	}
 
 	adminCommands := []*apps.Binding{
-		simple(CommandInstall, PathInstallAppCommand, "[flags]", "Install an App to this Mattermost instance"),
+		{
+			Label:       CommandInstall,
+			Location:    CommandInstall,
+			Hint:        "marketplace [ | developer]",
+			Description: "installs an app",
+			Bindings: []*apps.Binding{
+				simple(CommandMarketplace, PathInstallMarketplace, "App ID", "install App from the marketplace"),
+				simple(CommandDeveloper, PathInstallDeveloper, "Manifest URL", "install App from (manifest) URL"),
+			},
+		},
 		{
 			Label:       CommandDebug,
 			Location:    CommandDebug,
@@ -37,7 +46,6 @@ func (a *App) bindings(call *apps.Call) []*apps.Binding {
 			Description: "debugging commands",
 			Bindings: []*apps.Binding{
 				simple(CommandClean, PathDebugClean, "", "clean the Apps KV store and config"),
-				// simple(CommandInstall, PathDebugInstall, "", "install apps"),
 				simple(CommandBindings, PathDebugBindings, "", "view bindings"),
 			},
 		},

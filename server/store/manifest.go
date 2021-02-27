@@ -13,10 +13,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
+	"github.com/mattermost/mattermost-plugin-apps/awsclient"
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/httputils"
@@ -27,7 +29,8 @@ import (
 type Manifest interface {
 	config.Configurable
 
-	Init() error
+	InitGlobal(awscli awsclient.Client) error
+	InitBuiltin(...*apps.Manifest)
 	List() map[apps.AppID]*apps.Manifest
 	Get(apps.AppID) (*apps.Manifest, error)
 	StoreLocal(*apps.Manifest) error
@@ -37,13 +40,27 @@ type Manifest interface {
 type manifestStore struct {
 	*Service
 
-	global map[apps.AppID]*apps.Manifest
-	local  map[apps.AppID]*apps.Manifest
+	mutex sync.RWMutex
+
+	global  map[apps.AppID]*apps.Manifest
+	local   map[apps.AppID]*apps.Manifest
+	builtin map[apps.AppID]*apps.Manifest
 }
 
 var _ Manifest = (*manifestStore)(nil)
 
-func (s *manifestStore) Init() error {
+func (s *manifestStore) InitBuiltin(manifests ...*apps.Manifest) {
+	s.mutex.Lock()
+	if s.builtin == nil {
+		s.builtin = map[apps.AppID]*apps.Manifest{}
+	}
+	for _, m := range manifests {
+		s.builtin[m.AppID] = m
+	}
+	s.mutex.Unlock()
+}
+
+func (s *manifestStore) InitGlobal(awscli awsclient.Client) error {
 	bundlePath, err := s.mm.System.GetBundlePath()
 	if err != nil {
 		return errors.Wrap(err, "can't get bundle path")
@@ -55,11 +72,11 @@ func (s *manifestStore) Init() error {
 	}
 	defer f.Close()
 
-	return s.init(f, assetPath)
+	return s.initGlobal(awscli, f, assetPath)
 }
 
-func (s *manifestStore) init(manifestsFile io.Reader, assetPath string) error {
-	s.global = map[apps.AppID]*apps.Manifest{}
+func (s *manifestStore) initGlobal(awscli awsclient.Client, manifestsFile io.Reader, assetPath string) error {
+	global := map[apps.AppID]*apps.Manifest{}
 
 	// Read in the marketplace-listed manifests from S3, as per versions
 	// indicated in apps.json. apps.json file contains a map of AppID->manifest
@@ -76,9 +93,9 @@ func (s *manifestStore) init(manifestsFile io.Reader, assetPath string) error {
 		parts := strings.SplitN(string(loc), ":", 2)
 		switch {
 		case len(parts) == 1:
-			data, err = s.getFromS3(conf.AWSManifestBucket, appID, apps.AppVersion(parts[0]))
+			data, err = s.getFromS3(awscli, conf.AWSManifestBucket, appID, apps.AppVersion(parts[0]))
 		case len(parts) == 2 && parts[0] == "s3":
-			data, err = s.getFromS3(conf.AWSManifestBucket, appID, apps.AppVersion(parts[1]))
+			data, err = s.getFromS3(awscli, conf.AWSManifestBucket, appID, apps.AppVersion(parts[1]))
 		case len(parts) == 2 && parts[0] == "file":
 			data, err = ioutil.ReadFile(filepath.Join(assetPath, parts[1]))
 		case len(parts) == 2 && (parts[0] == "http" || parts[0] == "https"):
@@ -90,26 +107,39 @@ func (s *manifestStore) init(manifestsFile io.Reader, assetPath string) error {
 			return errors.Wrapf(err, "failed to load global manifest for %s", string(appID))
 		}
 
-		var m apps.Manifest
-		err = json.Unmarshal(data, &m)
+		var m *apps.Manifest
+		m, err = DecodeManifest(data)
 		if err != nil {
 			return err
 		}
 		if m.AppID != appID {
-			return errors.Errorf("missmatched app ids while getting manifest %s != %s", m.AppID, appID)
+			return errors.Errorf("mismatched app ids while getting manifest %s != %s", m.AppID, appID)
 		}
-		err = validateManifest(&m)
-		if err != nil {
-			return err
-		}
-		s.global[appID] = &m
+		global[appID] = m
 	}
+
+	s.mutex.Lock()
+	s.global = global
+	s.mutex.Unlock()
 
 	return nil
 }
 
+func DecodeManifest(data []byte) (*apps.Manifest, error) {
+	var m apps.Manifest
+	err := json.Unmarshal(data, &m)
+	if err != nil {
+		return nil, err
+	}
+	err = validateManifest(&m)
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
 func (s *manifestStore) Configure(conf config.Config) error {
-	s.local = map[apps.AppID]*apps.Manifest{}
+	updatedLocal := map[apps.AppID]*apps.Manifest{}
 
 	for id, key := range conf.LocalManifests {
 		var m *apps.Manifest
@@ -123,18 +153,32 @@ func (s *manifestStore) Configure(conf config.Config) error {
 				fmt.Sprintf("failed to load local manifest for %s: not found", id))
 		}
 
-		s.local[apps.AppID(id)] = m
+		updatedLocal[apps.AppID(id)] = m
 	}
+
+	s.mutex.Lock()
+	s.local = updatedLocal
+	s.mutex.Unlock()
 
 	return nil
 }
 
 func (s *manifestStore) Get(appID apps.AppID) (*apps.Manifest, error) {
-	m, ok := s.global[appID]
+	s.mutex.RLock()
+	builtin := s.builtin
+	local := s.local
+	global := s.global
+	s.mutex.RUnlock()
+
+	m, ok := builtin[appID]
 	if ok {
 		return m, nil
 	}
-	m, ok = s.local[appID]
+	m, ok = local[appID]
+	if ok {
+		return m, nil
+	}
+	m, ok = global[appID]
 	if ok {
 		return m, nil
 	}
@@ -142,16 +186,21 @@ func (s *manifestStore) Get(appID apps.AppID) (*apps.Manifest, error) {
 }
 
 func (s *manifestStore) List() map[apps.AppID]*apps.Manifest {
+	s.mutex.RLock()
+	builtin := s.builtin
+	local := s.local
+	global := s.global
+	s.mutex.RUnlock()
+
 	out := map[apps.AppID]*apps.Manifest{}
-	for id, m := range s.global {
+	for id, m := range global {
 		out[id] = m
 	}
-
-	for id, m := range s.local {
-		_, ok := s.global[id]
-		if !ok {
-			out[id] = m
-		}
+	for id, m := range local {
+		out[id] = m
+	}
+	for id, m := range builtin {
+		out[id] = m
 	}
 	return out
 }
@@ -173,6 +222,21 @@ func (s *manifestStore) StoreLocal(m *apps.Manifest) error {
 	if err != nil {
 		return err
 	}
+
+	s.mutex.RLock()
+	local := s.local
+	s.mutex.RUnlock()
+	updatedLocal := map[apps.AppID]*apps.Manifest{}
+	for k, v := range local {
+		if k != m.AppID {
+			updatedLocal[k] = v
+		}
+	}
+	updatedLocal[m.AppID] = m
+	s.mutex.Lock()
+	s.local = updatedLocal
+	s.mutex.Unlock()
+
 	updated := map[string]string{}
 	for k, v := range conf.LocalManifests {
 		updated[k] = v
@@ -185,11 +249,7 @@ func (s *manifestStore) StoreLocal(m *apps.Manifest) error {
 		return err
 	}
 
-	err = s.mm.KV.Delete(prefixLocalManifest + prevSHA)
-	if err != nil {
-		return err
-	}
-
+	_ = s.mm.KV.Delete(prefixLocalManifest + prevSHA)
 	return nil
 }
 
@@ -201,6 +261,20 @@ func (s *manifestStore) DeleteLocal(appID apps.AppID) error {
 	if err != nil {
 		return err
 	}
+
+	s.mutex.RLock()
+	local := s.local
+	s.mutex.RUnlock()
+	updatedLocal := map[apps.AppID]*apps.Manifest{}
+	for k, v := range local {
+		if k != appID {
+			updatedLocal[k] = v
+		}
+	}
+	s.mutex.Lock()
+	s.local = updatedLocal
+	s.mutex.Unlock()
+
 	updated := map[string]string{}
 	for k, v := range conf.LocalManifests {
 		updated[k] = v
@@ -213,9 +287,9 @@ func (s *manifestStore) DeleteLocal(appID apps.AppID) error {
 }
 
 // GetManifest returns a manifest file for an app from the S3
-func (s *manifestStore) getFromS3(bucket string, appID apps.AppID, version apps.AppVersion) ([]byte, error) {
+func (s *manifestStore) getFromS3(awscli awsclient.Client, bucket string, appID apps.AppID, version apps.AppVersion) ([]byte, error) {
 	name := fmt.Sprintf("manifest_%s_%s", appID, version)
-	data, err := s.aws.Client().GetS3(bucket, name)
+	data, err := awscli.GetS3(bucket, name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to download manifest %s", name)
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello"
-	"github.com/mattermost/mattermost-plugin-apps/server/upstream"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils"
 )
 
@@ -25,34 +24,47 @@ type helloapp struct {
 	*hello.HelloApp
 }
 
-var _ upstream.Upstream = (*helloapp)(nil)
-
 func NewHelloApp() *helloapp {
 	return &helloapp{
 		HelloApp: &hello.HelloApp{},
 	}
 }
 
+var common = apps.Common{
+	AppID:       AppID,
+	Type:        apps.AppTypeBuiltin,
+	Version:     "pre-release",
+	DisplayName: AppDisplayName,
+	Description: AppDescription,
+	HomepageURL: ("https://github.com/mattermost"),
+}
+
+var permissions = apps.Permissions{
+	apps.PermissionUserJoinedChannelNotification,
+	apps.PermissionActAsUser,
+	apps.PermissionActAsBot,
+}
+
+var locations = apps.Locations{
+	apps.LocationChannelHeader,
+	apps.LocationPostMenu,
+	apps.LocationCommand,
+	apps.LocationInPost,
+}
+
+func Manifest() *apps.Manifest {
+	return &apps.Manifest{
+		Common:               common,
+		RequestedPermissions: permissions,
+		RequestedLocations:   locations,
+	}
+}
+
 func (h *helloapp) App() *apps.App {
 	return &apps.App{
-		Common: apps.Common{
-			AppID:       AppID,
-			Type:        apps.AppTypeBuiltin,
-			DisplayName: AppDisplayName,
-			Description: AppDescription,
-			HomepageURL: ("https://github.com/mattermost"),
-		},
-		GrantedPermissions: apps.Permissions{
-			apps.PermissionUserJoinedChannelNotification,
-			apps.PermissionActAsUser,
-			apps.PermissionActAsBot,
-		},
-		GrantedLocations: apps.Locations{
-			apps.LocationChannelHeader,
-			apps.LocationPostMenu,
-			apps.LocationCommand,
-			apps.LocationInPost,
-		},
+		Common:             common,
+		GrantedPermissions: permissions,
+		GrantedLocations:   locations,
 	}
 }
 

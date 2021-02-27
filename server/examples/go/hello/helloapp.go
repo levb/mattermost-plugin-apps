@@ -1,7 +1,5 @@
 package hello
 
-import "github.com/mattermost/mattermost-plugin-apps/server/config"
-
 const (
 	fieldUserID   = "userID"
 	fieldMessage  = "message"
@@ -19,12 +17,8 @@ const (
 	PathSubmitSurvey             = "/survey-submit"
 )
 
-type HelloApp struct {
-	Conf config.Service
-}
+type HelloApp struct{}
 
-func NewHelloApp(conf config.Service) *HelloApp {
-	return &HelloApp{
-		Conf: conf,
-	}
+func NewHelloApp() *HelloApp {
+	return &HelloApp{}
 }

@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	AppID          = "http-hello"
+	AppID          = apps.AppID("http-hello")
 	AppSecret      = "1234"
 	AppDisplayName = "Hallo სამყარო (http)"
 	AppDescription = "Hallo სამყარო HTTP test app"
@@ -31,11 +31,13 @@ const (
 
 type helloapp struct {
 	*hello.HelloApp
+	conf config.Service
 }
 
 func NewHelloApp(conf config.Service) *helloapp {
 	return &helloapp{
-		HelloApp: hello.NewHelloApp(conf),
+		HelloApp: hello.NewHelloApp(),
+		conf:     conf,
 	}
 }
 
@@ -82,7 +84,7 @@ func Manifest(conf config.Config) *apps.Manifest {
 }
 
 func (h *helloapp) handleManifest(w http.ResponseWriter, req *http.Request) {
-	httputils.WriteJSON(w, Manifest(h.Conf.Get()))
+	httputils.WriteJSON(w, Manifest(h.conf.Get()))
 }
 
 func (h *helloapp) Install(call *apps.Call) *apps.CallResponse {
@@ -92,6 +94,7 @@ func (h *helloapp) Install(call *apps.Call) *apps.CallResponse {
 func handle(r *mux.Router, path string, h func(*apps.Call) *apps.CallResponse) {
 	r.HandleFunc(path,
 		func(w http.ResponseWriter, req *http.Request) {
+
 			_, err := checkJWT(req)
 			if err != nil {
 				proxy.WriteCallError(w, http.StatusUnauthorized, err)

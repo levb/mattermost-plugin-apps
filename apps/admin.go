@@ -4,6 +4,8 @@
 package apps
 
 type InInstallApp struct {
-	App   *App `json:"app"`
-	Force bool `json:"force,omitempty"`
+	Manifest         *Manifest `json:"manifest"`
+	OAuth2TrustedApp bool      `json:"oauth2_trusted_app,omitempty"`
+	Secret           string    `json:"secret,omitempty"`
+	Force            bool      `json:"force,omitempty"`
 }

@@ -5,15 +5,15 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func (a *App) connectForm(c *apps.Call) (*apps.Form, error) {
+func (a *builtinApp) connectForm(c *apps.Call) (*apps.Form, error) {
 	return &apps.Form{
 		Title: "Connect App to Mattermost",
 		Fields: []*apps.Field{
 			{
-				Name:                 fieldAppID,
+				Name:                 fAppID,
 				Type:                 apps.FieldTypeStaticSelect,
 				Description:          "App to connect to",
-				Label:                flagAppID,
+				Label:                fAppID,
 				AutocompleteHint:     "enter or select an App to connect",
 				AutocompletePosition: 1,
 				SelectStaticOptions:  a.getAppOptions(),
@@ -22,8 +22,8 @@ func (a *App) connectForm(c *apps.Call) (*apps.Form, error) {
 	}, nil
 }
 
-func (a *App) connect(call *apps.Call) *apps.CallResponse {
-	appID := apps.AppID(call.GetStringValue(fieldAppID, ""))
+func (a *builtinApp) connect(call *apps.Call) *apps.CallResponse {
+	appID := apps.AppID(call.GetStringValue(fAppID, ""))
 	connectURL, err := a.proxy.StartOAuthConnect(call.Context.ActingUserID, appID, call)
 	if err != nil {
 		return apps.NewCallResponse("", nil, err)
@@ -32,13 +32,13 @@ func (a *App) connect(call *apps.Call) *apps.CallResponse {
 	return apps.NewCallResponse(txt, nil, nil)
 }
 
-func (a *App) disconnect(call *apps.Call) *apps.CallResponse {
-	appID := apps.AppID(call.GetStringValue(fieldAppID, ""))
+func (a *builtinApp) disconnect(call *apps.Call) *apps.CallResponse {
+	appID := apps.AppID(call.GetStringValue(fAppID, ""))
 	txt := md.Markdownf("TODO: disconnect %s", appID)
 	return apps.NewCallResponse(txt, nil, nil)
 }
 
-func (a *App) getAppOptions() []apps.SelectOption {
+func (a *builtinApp) getAppOptions() []apps.SelectOption {
 	options := []apps.SelectOption{}
 
 	allApps := a.proxy.ListInstalledApps()

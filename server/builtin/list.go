@@ -10,16 +10,19 @@ import (
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
 
-func (a *App) listForm(c *apps.Call) (*apps.Form, error) {
-	return &apps.Form{
-		Title: "list Apps",
-		Call: &apps.Call{
-			URL: PathList,
+func (a *builtinApp) listForm(c *apps.Call) *apps.CallResponse {
+	return &apps.CallResponse{
+		Type: apps.CallResponseTypeForm,
+		Form: &apps.Form{
+			Title: "list Apps",
+			Call: &apps.Call{
+				URL: PathList,
+			},
 		},
-	}, nil
+	}
 }
 
-func (a *App) list(call *apps.Call) *apps.CallResponse {
+func (a *builtinApp) list(call *apps.Call) *apps.CallResponse {
 	marketplaceApps := a.proxy.ListMarketplaceApps("")
 	installedApps := a.proxy.ListInstalledApps()
 
@@ -28,13 +31,13 @@ func (a *App) list(call *apps.Call) *apps.CallResponse {
 
 	for _, app := range installedApps {
 		mapp := marketplaceApps[app.AppID]
+		if mapp == nil {
+			continue
+		}
 
 		status := "Installed"
 		if app.Disabled {
 			status += ", Disabled"
-		}
-		if mapp == nil {
-			status += ", Unlisted"
 		}
 		status += fmt.Sprintf(", type: `%s`", app.Type)
 
@@ -65,11 +68,14 @@ func (a *App) list(call *apps.Call) *apps.CallResponse {
 		if ok {
 			continue
 		}
+
 		version := string(mapp.Manifest.Version)
+		status := fmt.Sprintf("type: `%s`", mapp.Manifest.Type)
+
 		name := fmt.Sprintf("[%s](%s) (%s)",
 			mapp.Manifest.DisplayName, mapp.Manifest.HomepageURL, mapp.Manifest.AppID)
 		txt += md.Markdownf("|%s|%s|%s|%s|%s|%s|\n",
-			name, "", version, "", mapp.Manifest.RequestedLocations, mapp.Manifest.RequestedPermissions)
+			name, status, version, "", mapp.Manifest.RequestedLocations, mapp.Manifest.RequestedPermissions)
 	}
 
 	return apps.NewCallResponse(txt, nil, nil)

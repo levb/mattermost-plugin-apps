@@ -3,6 +3,7 @@
     "type": "aws",
     "display_name": "test zendesk app",
     "description": "for testing purposes",
+    "version":"0.1.0",
     "homepage_url": "https://testzendesk.test/home",
     "requested_permissions": [
         "user_joined_channel_notification",
