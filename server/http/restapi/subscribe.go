@@ -2,7 +2,6 @@ package restapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -36,11 +35,9 @@ func (a *restapi) handleSubscribeCore(w http.ResponseWriter, r *http.Request, is
 		_, _ = w.Write(resp.ToJSON())
 	}()
 
-	fmt.Printf("<><> handleSubscribeCore: 1\n")
-	actingUserID = r.Header.Get("Mattermost-User-ID")
+	actingUserID = r.Header.Get("Mattermost-User-Id")
 
 	if actingUserID == "" {
-		fmt.Printf("<><> handleSubscribeCore: 2 not logged in\n")
 		err = errors.New("user not logged in")
 		status = http.StatusUnauthorized
 		return
@@ -48,7 +45,6 @@ func (a *restapi) handleSubscribeCore(w http.ResponseWriter, r *http.Request, is
 
 	var sub apps.Subscription
 	if err = json.NewDecoder(r.Body).Decode(&sub); err != nil {
-		fmt.Printf("<><> handleSubscribeCore: 4 failed to decode\n")
 		status = http.StatusBadRequest
 		return
 	}
@@ -60,8 +56,6 @@ func (a *restapi) handleSubscribeCore(w http.ResponseWriter, r *http.Request, is
 	} else {
 		err = a.appservices.Unsubscribe(&sub)
 	}
-	fmt.Printf("<><> handleSubscribeCore: 5 %v\n", err)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

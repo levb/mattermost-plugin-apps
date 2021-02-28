@@ -69,11 +69,9 @@ func (p *proxy) InstallApp(cc *apps.Context, in *apps.InInstallApp) (*apps.App, 
 	}
 
 	install := in.Manifest.OnInstall
-	fmt.Printf("<><> proxy.InstallApp adminToken: %q\n", cc.AdminAccessToken)
 	if install == nil {
 		install = apps.DefaultInstallCall
 	}
-	fmt.Printf("<><> proxy.InstallApp expand: %v\n", install.Expand)
 	cloneCC := *cc
 	cloneCC.AppID = app.AppID
 	cloneCC.ExpandedContext = apps.ExpandedContext{}

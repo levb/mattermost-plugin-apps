@@ -52,21 +52,17 @@ func Setup(t testing.TB) *TestHelper {
 
 	th.ServerTestHelper = serverTestHelper
 
-	th.ClientPP = th.CreateClientPP()
-	th.SystemAdminClientPP = th.CreateClientPP()
-	th.SystemAdminClientPP.AuthToken = th.ServerTestHelper.SystemAdminClient.AuthToken
-	th.SystemAdminClientPP.AuthType = th.ServerTestHelper.SystemAdminClient.AuthType
+	th.ClientPP = th.CreateClientPP("")
+
+	th.SystemAdminClientPP = th.CreateClientPP(th.ServerTestHelper.SystemAdminClient.AuthToken)
+
 	th.LocalClientPP = th.CreateLocalClient("TODO")
 
 	bot := th.ServerTestHelper.CreateBotWithSystemAdminClient()
 	_, err := th.ServerTestHelper.App.AddUserToTeam(th.ServerTestHelper.BasicTeam.Id, bot.UserId, "")
 	require.Nil(t, err)
-
 	rtoken, _ := th.ServerTestHelper.SystemAdminClient.CreateUserAccessToken(bot.UserId, "test token")
-
-	th.BotClientPP = th.CreateClientPP()
-	th.BotClientPP.AuthToken = rtoken.Token
-	th.BotClientPP.AuthType = th.ServerTestHelper.SystemAdminClient.AuthType
+	th.BotClientPP = th.CreateClientPP(rtoken.Token)
 
 	return th
 }
@@ -102,8 +98,8 @@ func SetupPP(th *TestHelper, t testing.TB) {
 	require.True(t, th.ServerTestHelper.App.GetPluginsEnvironment().IsActive(pluginID))
 }
 
-func (th *TestHelper) CreateClientPP() *mmclient.ClientPP {
-	return mmclient.NewAPIClientPP(fmt.Sprintf("http://localhost:%v", th.ServerTestHelper.App.Srv().ListenAddr.Port))
+func (th *TestHelper) CreateClientPP(token string) *mmclient.ClientPP {
+	return mmclient.NewAPIClientPP(fmt.Sprintf("http://localhost:%v", th.ServerTestHelper.App.Srv().ListenAddr.Port), token)
 }
 
 func (th *TestHelper) CreateLocalClient(socketPath string) *mmclient.ClientPP {

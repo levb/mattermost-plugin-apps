@@ -15,7 +15,7 @@ func (o *oAuther) oauth2Complete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	authedUserID := r.Header.Get("Mattermost-User-ID")
+	authedUserID := r.Header.Get("Mattermost-User-Id")
 	if authedUserID == "" {
 		o.logger.Debugf("oauth2Complete: reached by non authed user")
 		http.Error(w, "Not authorized", http.StatusUnauthorized)

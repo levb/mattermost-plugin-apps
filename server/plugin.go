@@ -6,7 +6,6 @@ package main
 import (
 	"fmt"
 	gohttp "net/http"
-	"net/http/httputil"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -119,8 +118,7 @@ func (p *Plugin) OnConfigurationChange() error {
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w gohttp.ResponseWriter, req *gohttp.Request) {
-	bb, _ := httputil.DumpRequest(req, false)
-	fmt.Printf("<><> ServeHTTP: %s\n", string(bb))
+	fmt.Printf("<><> -- ServeHTTP: %s %s\n", req.URL.Path, req.Header.Get("Mattermost-User-Id"))
 	p.http.ServeHTTP(c, w, req)
 }
 

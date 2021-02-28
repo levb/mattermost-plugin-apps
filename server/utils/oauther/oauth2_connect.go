@@ -18,7 +18,7 @@ func (o *oAuther) oauth2Connect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	userID := r.Header.Get("Mattermost-User-ID")
+	userID := r.Header.Get("Mattermost-User-Id")
 	if userID == "" {
 		o.logger.Debugf("oauth2Connect: reached by non authed user")
 		http.Error(w, "Not authorized", http.StatusUnauthorized)

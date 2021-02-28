@@ -21,7 +21,6 @@ func as(id, token string, cc *apps.Context) *Client {
 }
 
 func AsBot(cc *apps.Context) *Client {
-	fmt.Printf("<><> AsBot: %q %q\n", cc.BotUserID, cc.BotAccessToken)
 	return as(cc.BotUserID, cc.BotAccessToken, cc)
 }
 
@@ -36,7 +35,7 @@ func AsAdmin(cc *apps.Context) *Client {
 func NewClient(userID, token, mattermostSiteURL string) *Client {
 	client := Client{
 		userID:   userID,
-		ClientPP: NewAPIClientPP(mattermostSiteURL),
+		ClientPP: NewAPIClientPP(mattermostSiteURL, token),
 		Client4:  model.NewAPIv4Client(mattermostSiteURL),
 	}
 	client.Client4.SetOAuthToken(token)
@@ -90,7 +89,7 @@ func (client *Client) Subscribe(sub *apps.Subscription) (*apps.SubscriptionRespo
 	var res *model.Response
 
 	subResponse, res = client.ClientPP.Subscribe(sub)
-	if res.StatusCode != http.StatusCreated {
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
 		if res.Error != nil {
 			return nil, res.Error
 		}
@@ -105,7 +104,7 @@ func (client *Client) Unsubscribe(sub *apps.Subscription) (*apps.SubscriptionRes
 	var res *model.Response
 
 	subResponse, res = client.ClientPP.Unsubscribe(sub)
-	if res.StatusCode != http.StatusCreated {
+	if res.StatusCode != http.StatusOK {
 		if res.Error != nil {
 			return nil, res.Error
 		}

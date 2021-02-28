@@ -32,15 +32,20 @@ type ClientPP struct {
 	HTTPHeader map[string]string // Headers to be copied over for each request
 
 	// TrueString is the string value sent to the server for true boolean query parameters.
-	trueString string
+	// trueString string
 
 	// FalseString is the string value sent to the server for false boolean query parameters.
-	falseString string
+	// falseString string
 }
 
-func NewAPIClientPP(url string) *ClientPP {
+func NewAPIClientPP(url, token string) *ClientPP {
 	url = strings.TrimRight(url, "/")
-	return &ClientPP{url, url, &http.Client{}, "", "", map[string]string{}, "", ""}
+	return &ClientPP{
+		URL:        url,
+		APIURL:     url,
+		HTTPClient: &http.Client{},
+		AuthToken:  token,
+	}
 }
 
 func (c *ClientPP) KVSet(id string, prefix string, in map[string]interface{}) (map[string]interface{}, *model.Response) {
@@ -130,7 +135,11 @@ func (c *ClientPP) doAPIRequestReader(method, url string, data io.Reader, etag s
 	}
 
 	if len(c.AuthToken) > 0 {
-		rq.Header.Set(HeaderAuth, c.AuthType+" "+c.AuthToken)
+		authType := "BEARER"
+		if c.AuthType != "" {
+			authType = c.AuthType
+		}
+		rq.Header.Set(HeaderAuth, authType+" "+c.AuthToken)
 	}
 
 	if len(c.HTTPHeader) > 0 {

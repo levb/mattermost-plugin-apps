@@ -27,7 +27,6 @@ func (p *proxy) Call(adminAccessToken string, call *apps.Call) (*apps.Call, *app
 	}
 
 	oauth := p.newMattermostOAuthenticator(app)
-	fmt.Printf("<><> Call: 2: expand: %+v\n", call.Expand)
 	call, err = p.expandCall(call, app, adminAccessToken, oauth, nil)
 	if err == errOAuthRequired {
 		connectURL := oauth.GetConnectURL()
@@ -47,7 +46,6 @@ func (p *proxy) Call(adminAccessToken string, call *apps.Call) (*apps.Call, *app
 	if err != nil {
 		return call, apps.NewErrorCallResponse(err)
 	}
-	fmt.Printf("<><> Call: 3: expanded admin token: %+v\n", call.Context.AdminAccessToken)
 
 	up, err := p.upstreamForApp(app)
 	if err != nil {
