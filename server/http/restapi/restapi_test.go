@@ -26,7 +26,7 @@ func TestPPAPI(t *testing.T) {
 			TeamID:    th.ServerTestHelper.BasicTeam.Id,
 		}
 
-		th.TestForSystemAdmin(t, func(t *testing.T, client *mmclient.ClientPP) {
+		th.TestForBot(t, func(t *testing.T, client *mmclient.ClientPP) {
 			// subscribe
 			_, resp := client.Subscribe(subscription)
 			api4.CheckOKStatus(t, resp)

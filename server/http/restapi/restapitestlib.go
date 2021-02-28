@@ -132,6 +132,17 @@ func (th *TestHelper) TestForSystemAdmin(t *testing.T, f func(*testing.T, *mmcli
 	})
 }
 
+func (th *TestHelper) TestForBot(t *testing.T, f func(*testing.T, *mmclient.ClientPP), name ...string) {
+	var testName string
+	if len(name) > 0 {
+		testName = name[0] + "/"
+	}
+
+	t.Run(testName+"BotClientPP", func(t *testing.T) {
+		f(t, th.BotClientPP)
+	})
+}
+
 func (th *TestHelper) TestForLocal(t *testing.T, f func(*testing.T, *mmclient.ClientPP), name ...string) {
 	var testName string
 	if len(name) > 0 {

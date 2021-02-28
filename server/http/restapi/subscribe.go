@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
@@ -44,13 +43,6 @@ func (a *restapi) handleSubscribeCore(w http.ResponseWriter, r *http.Request, is
 		fmt.Printf("<><> handleSubscribeCore: 2 not logged in\n")
 		err = errors.New("user not logged in")
 		status = http.StatusUnauthorized
-		return
-	}
-
-	// TODO check for sysadmin
-	if !a.mm.User.HasPermissionTo(actingUserID, model.PERMISSION_MANAGE_SYSTEM) {
-		fmt.Printf("<><> handleSubscribeCore: 3 not sysadmin\n")
-		http.Error(w, errors.New("forbidden").Error(), http.StatusForbidden)
 		return
 	}
 
