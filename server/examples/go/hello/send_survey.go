@@ -4,12 +4,48 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/mattermost/mattermost-server/v5/model"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
 	"github.com/mattermost/mattermost-plugin-apps/apps/mmclient"
 	"github.com/mattermost/mattermost-plugin-apps/server/utils/md"
 )
+
+func (h *HelloApp) SendSurvey(call *apps.Call) *apps.CallResponse {
+	switch call.Type {
+	case apps.CallTypeForm:
+		return NewSendSurveyFormResponse(call)
+
+	case apps.CallTypeSubmit:
+		txt, err := h.sendSurvey(call)
+		return apps.NewCallResponse(txt, nil, err)
+
+	case apps.CallTypeLookup:
+		return &apps.CallResponse{
+			Data: map[string]interface{}{
+				"items": []*apps.SelectOption{
+					{
+						Label: "Option 1",
+						Value: "option1",
+					},
+				},
+			},
+		}
+
+	default:
+		return apps.NewErrorCallResponse(errors.New("not supported"))
+	}
+}
+
+func (h *HelloApp) SendSurveyModal(c *apps.Call) *apps.CallResponse {
+	return NewSendSurveyFormResponse(c)
+}
+
+func (h *HelloApp) SendSurveyCommandToModal(c *apps.Call) *apps.CallResponse {
+	return NewSendSurveyPartialFormResponse(c)
+}
 
 type SurveyFormSubmission struct {
 	UserID  string                 `json:"userID"`
@@ -132,9 +168,9 @@ func NewSendSurveyPartialFormResponse(c *apps.Call) *apps.CallResponse {
 	}
 }
 
-func (h *HelloApp) SendSurvey(c *apps.Call) (md.MD, error) {
+func (h *HelloApp) sendSurvey(c *apps.Call) (md.MD, error) {
 	bot := mmclient.AsBot(c.Context)
-	userID := c.GetValue(fieldUserID, c.Context.ActingUserID)
+	userID := c.GetStringValue(fieldUserID, c.Context.ActingUserID)
 
 	// TODO this should be done with expanding mentions, make a ticket
 	if strings.HasPrefix(userID, "@") {
@@ -144,7 +180,7 @@ func (h *HelloApp) SendSurvey(c *apps.Call) (md.MD, error) {
 		}
 	}
 
-	message := c.GetValue(fieldMessage, "Hello")
+	message := c.GetStringValue(fieldMessage, "Hello")
 	if c.Context.Post != nil {
 		message += "\n>>> " + c.Context.Post.Message
 	}

@@ -30,8 +30,7 @@ const (
 // consent, the appropriate OAuth flow is launched, and the Call is executed
 // upon its success.
 //
-// TODO: what if a call needs a token and it was not provided? Return a call to
-// itself with Expand.
+// Call should be abbreviated as `call`.
 type Call struct {
 	URL        string                 `json:"url,omitempty"`
 	Type       CallType               `json:"type,omitempty"`
@@ -67,6 +66,7 @@ const (
 	CallResponseTypeNavigate = CallResponseType("navigate")
 )
 
+// CallResponse should be abbreviated as `cr`.
 type CallResponse struct {
 	Type CallResponseType `json:"type,omitempty"`
 
@@ -88,6 +88,17 @@ type CallResponse struct {
 	Form *Form `json:"form,omitempty"`
 }
 
+func NewCallResponse(txt md.MD, data interface{}, err error) *CallResponse {
+	if err != nil {
+		return NewErrorCallResponse(err)
+	}
+	return &CallResponse{
+		Type:     CallResponseTypeOK,
+		Markdown: txt,
+		Data:     data,
+	}
+}
+
 func NewErrorCallResponse(err error) *CallResponse {
 	return &CallResponse{
 		Type: CallResponseTypeError,
@@ -105,25 +116,25 @@ func (cr *CallResponse) Error() string {
 }
 
 func UnmarshalCallFromData(data []byte) (*Call, error) {
-	c := Call{}
-	err := json.Unmarshal(data, &c)
+	call := Call{}
+	err := json.Unmarshal(data, &call)
 	if err != nil {
 		return nil, err
 	}
-	return &c, nil
+	return &call, nil
 }
 
 func UnmarshalCallFromReader(in io.Reader) (*Call, error) {
-	c := Call{}
-	err := json.NewDecoder(in).Decode(&c)
+	call := Call{}
+	err := json.NewDecoder(in).Decode(&call)
 	if err != nil {
 		return nil, err
 	}
-	return &c, nil
+	return &call, nil
 }
 
 func MakeCall(url string, namevalues ...string) *Call {
-	c := &Call{
+	call := &Call{
 		URL: url,
 	}
 
@@ -140,27 +151,48 @@ func MakeCall(url string, namevalues ...string) *Call {
 		}
 	}
 	if len(values) > 0 {
-		c.Values = values
+		call.Values = values
 	}
-	return c
+	return call
 }
 
-func (c *Call) GetValue(name, defaultValue string) string {
-	if len(c.Values) == 0 {
+func (call *Call) GetStringValue(name, defaultValue string) string {
+	if len(call.Values) == 0 {
 		return defaultValue
 	}
-
-	s, ok := c.Values[name].(string)
-	if ok && s != "" {
-		return s
+	v := call.Values[name]
+	if v == nil {
+		return defaultValue
 	}
+	switch v := v.(type) {
+	case string:
+		return v
 
-	opt, ok := c.Values[name].(map[string]interface{})
-	if ok {
-		if v, ok2 := opt["value"].(string); ok2 {
-			return v
+	case map[string]interface{}:
+		if len(v) == 0 {
+			return defaultValue
 		}
-	}
+		if s, ok := v["value"].(string); ok {
+			return s
+		}
+		return defaultValue
 
-	return defaultValue
+	default:
+		return defaultValue
+	}
+}
+
+func (call *Call) GetBoolValue(name string) bool {
+	if len(call.Values) == 0 {
+		return false
+	}
+	v := call.Values[name]
+	if v == nil {
+		return false
+	}
+	b, ok := v.(bool)
+	if !ok {
+		return false
+	}
+	return b
 }

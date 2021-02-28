@@ -13,11 +13,22 @@ const (
 
 func Manifest() *apps.Manifest {
 	return &apps.Manifest{
-		AppID:       AppID,
-		Version:     AppVersion,
-		Type:        apps.AppTypeAWSLambda,
-		DisplayName: AppDisplayName,
-		Description: AppDescription,
+		Common: apps.Common{
+			AppID:       AppID,
+			Version:     AppVersion,
+			Type:        apps.AppTypeAWS,
+			DisplayName: AppDisplayName,
+			Description: AppDescription,
+			HomepageURL: ("https://github.com/mattermost"),
+
+			OnInstall: &apps.Call{
+				URL: "on_activate",
+				Expand: &apps.Expand{
+					App:              apps.ExpandAll,
+					AdminAccessToken: apps.ExpandAll,
+				},
+			},
+		},
 		RequestedPermissions: apps.Permissions{
 			apps.PermissionUserJoinedChannelNotification,
 			apps.PermissionActAsUser,
@@ -28,14 +39,6 @@ func Manifest() *apps.Manifest {
 			apps.LocationPostMenu,
 			apps.LocationCommand,
 			apps.LocationInPost,
-		},
-		HomepageURL: ("https://github.com/mattermost"),
-		OnInstall: &apps.Call{
-			URL: "on_activate",
-			Expand: &apps.Expand{
-				App:              apps.ExpandAll,
-				AdminAccessToken: apps.ExpandAll,
-			},
 		},
 	}
 }

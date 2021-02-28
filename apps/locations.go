@@ -13,6 +13,11 @@ const (
 	LocationInPost        Location = "/in_post"
 )
 
+const (
+	CommandConnect    = "connect"
+	CommandDisconnect = "disconnect"
+)
+
 type Location string
 
 type Locations []Location

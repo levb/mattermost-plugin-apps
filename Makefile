@@ -24,7 +24,7 @@ BUILD_HASH_SHORT = $(shell git rev-parse --short HEAD)
 LDFLAGS += -X "main.BuildDate=$(BUILD_DATE)"
 LDFLAGS += -X "main.BuildHash=$(BUILD_HASH)"
 LDFLAGS += -X "main.BuildHashShort=$(BUILD_HASH_SHORT)"
-GOBUILD = $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)'
+GOBUILD = $(GO) build $(GOFLAGS) $(GO_BUILD_FLAGS) -ldflags '$(LDFLAGS)'
 GOTEST = $(GO) test $(GOFLAGS) $(GO_TEST_FLAGS) -ldflags '$(LDFLAGS)'
 GO_PACKAGES = $(shell go list ./...)
 
@@ -98,8 +98,12 @@ endif
 mock:
 ifneq ($(HAS_SERVER),)
 	go install github.com/golang/mock/mockgen
-	mockgen -destination server/api/mock_api/mock_appservices.go github.com/mattermost/mattermost-plugin-apps/server/api AppServices
-	mockgen -destination server/api/mock_api/mock_proxy.go github.com/mattermost/mattermost-plugin-apps/server/api Proxy
+	mockgen -destination server/mock/mock_store/mock_app.go github.com/mattermost/mattermost-plugin-apps/server/store App
+	mockgen -destination server/mock/mock_store/mock_manifest.go github.com/mattermost/mattermost-plugin-apps/server/store Manifest
+	mockgen -destination server/mock/mock_store/mock_subscription.go github.com/mattermost/mattermost-plugin-apps/server/store Subscription
+	mockgen -destination server/mock/mock_appservices/mock_appservices.go github.com/mattermost/mattermost-plugin-apps/server/appservices Service
+	mockgen -destination server/mock/mock_aws/mock_aws.go github.com/mattermost/mattermost-plugin-apps/server/aws Service
+	mockgen -destination awsclient/mock_awsclient/mock_awsclient.go github.com/mattermost/mattermost-plugin-apps/awsclient Client
 endif
 
 ## Generates mock golang interfaces for testing
@@ -115,15 +119,15 @@ server:
 ifneq ($(HAS_SERVER),)
 	mkdir -p server/dist;
 ifeq ($(MM_DEBUG),)
-	cd server && env GOOS=linux GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -o dist/plugin-linux-amd64;
-	cd server && env GOOS=darwin GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -o dist/plugin-darwin-amd64;
-	cd server && env GOOS=windows GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -o dist/plugin-windows-amd64.exe;
+	cd server && env GOOS=linux GOARCH=amd64 $(GOBUILD) -o dist/plugin-linux-amd64;
+	cd server && env GOOS=darwin GOARCH=amd64 $(GOBUILD) -o dist/plugin-darwin-amd64;
+	cd server && env GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/plugin-windows-amd64.exe;
 else
 	$(info DEBUG mode is on; to disable, unset MM_DEBUG)
 
-	cd server && env GOOS=darwin GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -gcflags "all=-N -l" -o dist/plugin-darwin-amd64;
-	cd server && env GOOS=linux GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -gcflags "all=-N -l" -o dist/plugin-linux-amd64;
-	cd server && env GOOS=windows GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -gcflags "all=-N -l" -o dist/plugin-windows-amd64.exe;
+	cd server && env GOOS=darwin GOARCH=amd64 $(GOBUILD) -gcflags "all=-N -l" -o dist/plugin-darwin-amd64;
+	cd server && env GOOS=linux GOARCH=amd64 $(GOBUILD) -gcflags "all=-N -l" -o dist/plugin-linux-amd64;
+	cd server && env GOOS=windows GOARCH=amd64 $(GOBUILD) -gcflags "all=-N -l" -o dist/plugin-windows-amd64.exe;
 endif
 endif
 
@@ -240,22 +244,22 @@ test: test-unit
 test-unit: webapp/node_modules
 	@echo Running unit tests
 ifneq ($(HAS_SERVER),)
-	$(GO) test -v $(GO_TEST_FLAGS) ./server/...
+	$(GOTEST) ./server/...
 endif
 ifneq ($(HAS_WEBAPP),)
 	cd webapp && $(NPM) run test;
 endif
 
 .PHONY: test-e2e
-test-e2e:
+test-e2e: dist
 	@echo Running e2e tests
-	MM_SERVER_PATH=${MM_SERVER_PATH} $(GO) test -v $(GO_TEST_FLAGS) -tags=e2e $(GO_PACKAGES)
+	PLUGIN_BUNDLE=$(shell pwd)/dist/$(BUNDLE_NAME) MM_SERVER_PATH=${MM_SERVER_PATH} $(GO) test -v $(GO_TEST_FLAGS) -tags=e2e $(GO_PACKAGES)
 
 ## Creates a coverage report for the server code.
 .PHONY: coverage
 coverage: webapp/node_modules
 ifneq ($(HAS_SERVER),)
-	$(GO) test $(GO_TEST_FLAGS) -coverprofile=server/coverage.txt ./server/...
+	$(GOTEST) -coverprofile=server/coverage.txt ./server/...
 	$(GO) tool cover -html=server/coverage.txt
 endif
 

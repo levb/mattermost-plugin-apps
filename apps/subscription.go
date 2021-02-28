@@ -21,6 +21,7 @@ const (
 	SubjectPostCreated       = Subject("post_created")
 )
 
+// Subscription should be abbreviated as `sub`.
 type Subscription struct {
 	AppID   AppID   `json:"app_id"`
 	Subject Subject `json:"subject"`

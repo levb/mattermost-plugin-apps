@@ -2,9 +2,9 @@ package restapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
-	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
@@ -36,33 +36,31 @@ func (a *restapi) handleSubscribeCore(w http.ResponseWriter, r *http.Request, is
 		_, _ = w.Write(resp.ToJSON())
 	}()
 
+	fmt.Printf("<><> handleSubscribeCore: 1\n")
 	actingUserID = r.Header.Get("Mattermost-User-ID")
 
 	if actingUserID == "" {
+		fmt.Printf("<><> handleSubscribeCore: 2 not logged in\n")
 		err = errors.New("user not logged in")
 		status = http.StatusUnauthorized
 		return
 	}
 
-	// TODO check for sysadmin
-	if !a.api.Mattermost.User.HasPermissionTo(actingUserID, model.PERMISSION_MANAGE_SYSTEM) {
-		http.Error(w, errors.New("forbidden").Error(), http.StatusForbidden)
-		return
-	}
-
 	var sub apps.Subscription
 	if err = json.NewDecoder(r.Body).Decode(&sub); err != nil {
-		status = http.StatusUnauthorized
+		fmt.Printf("<><> handleSubscribeCore: 4 failed to decode\n")
+		status = http.StatusBadRequest
 		return
 	}
 
 	// TODO replace with an appropriate API-level call that would validate,
 	// deduplicate, etc.
 	if isSubscribe {
-		err = a.api.AppServices.Subscribe(&sub)
+		err = a.appservices.Subscribe(&sub)
 	} else {
-		err = a.api.AppServices.Unsubscribe(&sub)
+		err = a.appservices.Unsubscribe(&sub)
 	}
+	fmt.Printf("<><> handleSubscribeCore: 5 %v\n", err)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

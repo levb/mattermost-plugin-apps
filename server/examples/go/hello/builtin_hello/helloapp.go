@@ -9,8 +9,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-apps/apps"
-	"github.com/mattermost/mattermost-plugin-apps/server/api"
+	"github.com/mattermost/mattermost-plugin-apps/server/config"
 	"github.com/mattermost/mattermost-plugin-apps/server/examples/go/hello"
+	"github.com/mattermost/mattermost-plugin-apps/server/utils"
 )
 
 const (
@@ -23,48 +24,57 @@ type helloapp struct {
 	*hello.HelloApp
 }
 
-var _ api.Upstream = (*helloapp)(nil)
-
-func New(appService *api.Service) *helloapp {
+func NewHelloApp() *helloapp {
 	return &helloapp{
-		HelloApp: &hello.HelloApp{
-			API: appService,
-		},
+		HelloApp: &hello.HelloApp{},
 	}
+}
+
+var common = apps.Common{
+	AppID:       AppID,
+	Type:        apps.AppTypeBuiltin,
+	Version:     "pre-release",
+	DisplayName: AppDisplayName,
+	Description: AppDescription,
+	HomepageURL: ("https://github.com/mattermost"),
+}
+
+var permissions = apps.Permissions{
+	apps.PermissionUserJoinedChannelNotification,
+	apps.PermissionActAsUser,
+	apps.PermissionActAsBot,
+}
+
+var locations = apps.Locations{
+	apps.LocationChannelHeader,
+	apps.LocationPostMenu,
+	apps.LocationCommand,
+	apps.LocationInPost,
 }
 
 func Manifest() *apps.Manifest {
 	return &apps.Manifest{
-		AppID:       AppID,
-		Type:        apps.AppTypeBuiltin,
-		DisplayName: AppDisplayName,
-		Description: AppDescription,
-		RequestedPermissions: apps.Permissions{
-			apps.PermissionUserJoinedChannelNotification,
-			apps.PermissionActAsUser,
-			apps.PermissionActAsBot,
-		},
-		RequestedLocations: apps.Locations{
-			apps.LocationChannelHeader,
-			apps.LocationPostMenu,
-			apps.LocationCommand,
-			apps.LocationInPost,
-		},
-		HomepageURL: ("https://github.com/mattermost"),
+		Common:               common,
+		RequestedPermissions: permissions,
+		RequestedLocations:   locations,
+	}
+}
+
+func (h *helloapp) App() *apps.App {
+	return &apps.App{
+		Common:             common,
+		GrantedPermissions: permissions,
+		GrantedLocations:   locations,
 	}
 }
 
 func (h *helloapp) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
 	cr := &apps.CallResponse{}
 	switch c.URL {
-	case api.BindingsPath:
-		cr = &apps.CallResponse{
-			Type: apps.CallResponseTypeOK,
-			Data: hello.Bindings(),
-		}
-
-	case apps.DefaultInstallCallPath:
-		cr = h.Install(c)
+	case config.BindingsPath:
+		cr = h.GetBindings(c)
+	case "/install":
+		cr = h.Install(AppID, AppDisplayName, c)
 	case hello.PathSendSurvey:
 		cr = h.SendSurvey(c)
 	case hello.PathSendSurveyModal:
@@ -73,6 +83,8 @@ func (h *helloapp) Roundtrip(c *apps.Call) (io.ReadCloser, error) {
 		cr = h.SendSurveyCommandToModal(c)
 	case hello.PathSurvey:
 		cr = h.Survey(c)
+	case hello.PathPostAsUser:
+		cr = h.PostAsUser(c)
 	default:
 		return nil, errors.Errorf("%s is not found", c.URL)
 	}
@@ -94,72 +106,6 @@ func (h *helloapp) OneWay(call *apps.Call) error {
 	return nil
 }
 
-func (h *helloapp) Install(c *apps.Call) *apps.CallResponse {
-	if c.Type != apps.CallTypeSubmit {
-		return apps.NewErrorCallResponse(errors.New("not supported"))
-	}
-	out, err := h.HelloApp.Install(AppID, AppDisplayName, c)
-	if err != nil {
-		return apps.NewErrorCallResponse(err)
-	}
-	return &apps.CallResponse{
-		Type:     apps.CallResponseTypeOK,
-		Markdown: out,
-	}
-}
-
-func (h *helloapp) SendSurvey(c *apps.Call) *apps.CallResponse {
-	switch c.Type {
-	case apps.CallTypeForm:
-		return hello.NewSendSurveyFormResponse(c)
-
-	case apps.CallTypeSubmit:
-		txt, err := h.HelloApp.SendSurvey(c)
-		if err != nil {
-			return apps.NewErrorCallResponse(err)
-		}
-		return &apps.CallResponse{
-			Type:     apps.CallResponseTypeOK,
-			Markdown: txt,
-		}
-	case apps.CallTypeLookup:
-		return &apps.CallResponse{
-			Data: map[string]interface{}{
-				"items": []*apps.SelectOption{
-					{
-						Label: "Option 1",
-						Value: "option1",
-					},
-				},
-			},
-		}
-	}
-
-	return nil
-}
-
-func (h *helloapp) SendSurveyModal(c *apps.Call) *apps.CallResponse {
-	return hello.NewSendSurveyFormResponse(c)
-}
-
-func (h *helloapp) SendSurveyCommandToModal(c *apps.Call) *apps.CallResponse {
-	return hello.NewSendSurveyPartialFormResponse(c)
-}
-
-func (h *helloapp) Survey(c *apps.Call) *apps.CallResponse {
-	switch c.Type {
-	case apps.CallTypeForm:
-		return hello.NewSurveyFormResponse(c)
-
-	case apps.CallTypeSubmit:
-		err := h.ProcessSurvey(c)
-		if err != nil {
-			return apps.NewErrorCallResponse(err)
-		}
-		return &apps.CallResponse{
-			Type:     apps.CallResponseTypeOK,
-			Markdown: "<><> TODO",
-		}
-	}
-	return nil
+func (h *helloapp) GetStatic(path string) ([]byte, error) {
+	return nil, utils.ErrNotFound
 }

@@ -34,8 +34,8 @@ func TestUnmarshalCallRequest(t *testing.T) {
 	require.Equal(t, "9pu8hstcpigm5x4dboe6hz9ddw", data.Context.TeamID)
 	require.Equal(t, "https://levb.ngrok.io", data.Context.MattermostSiteURL)
 	require.Equal(t, "cywc3e8nebyujrpuip98t69a3h", data.Values[PropOAuth2ClientSecret])
-	require.Equal(t, "The Value", data.GetValue("selected_option", ""))
-	require.Equal(t, "The Default Value", data.GetValue("nonexistent", "The Default Value"))
+	require.Equal(t, "The Value", data.GetStringValue("selected_option", ""))
+	require.Equal(t, "The Default Value", data.GetStringValue("nonexistent", "The Default Value"))
 }
 
 func TestMarshalCallResponse(t *testing.T) {
