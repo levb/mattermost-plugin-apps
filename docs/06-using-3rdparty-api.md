@@ -1,8 +1,11 @@
 # Using 3rd party APIs
 
-Mattermost Apps framework provides assistance for using remote (3rd party) OAuth2 HTTP APIs, and receiving authenticated webhook notifications from remote (3rd party) systems. There are 2 examples here to illustrate the OAuth and webhook support.
+Mattermost Apps framework provides services for using remote (3rd party) OAuth2
+HTTP APIs, and receiving authenticated webhook notifications from remote
+systems. There are 2 examples here to illustrate the [OAuth2](#hello-oauth2) and
+[webhook](#hello-webhooks) support.
 
-# Hello OAuth2!
+## Hello OAuth2!
 
 Here is an example of an HTTP App ([source](/server/examples/go/hello-oauth2)),
 written in Go and runnable on http://localhost:8080. 
@@ -11,10 +14,8 @@ written in Go and runnable on http://localhost:8080.
   permissions and binds itself to locations in the Mattermost UI.
 - In its `bindings` function it declares 3 commands: `configure`, `connect`, and
   `send`.
-- It contains a `send` function that sends a parameterized message back to the
-  user. 
-- It contains a `send-modal` function that forces displaying the `send` form as
-  a Modal.
+- Its `send` function mentions the user by their Google name, and lists their
+  Google Calendars.
 
 To install "Hello, OAuth2" on a locally-running instance of Mattermost follow
 these steps (go 1.16 is required):
@@ -40,57 +41,39 @@ for the `Authorized redirect URIs` field. After configuring the credentials, in 
 Now, you can connect your account to Google with `/hello-oauth2 connect` command, and then try `/hello-oauth2 send`.
 
 ## Manifest
-The manifest declares App metadata, For HTTP apps like this no paths mappings
-are needed. The Hello World App requests the *permission* to act as a Bot, and
-to *bind* itself to the channel header, and to /commands.
+Hello OAuth2! is an HTTP App, it requests the *permissions* to act as an Admin to change the App's OAuth2 config, as a User to connect and send. It binds itself to /commands.
 
-```json
-{
-	"app_id": "helloworld",
-	"display_name": "Hello, world!",
-	"app_type": "http",
-	"root_url": "http://localhost:8080",
-	"requested_permissions": [
-		"act_as_bot"
-	],
-	"requested_locations": [
-		"/channel_header",
-		"/command"
-	]
-}
-```
+https://github.com/levb/mattermost-plugin-apps/blob/81018cdcf3bb04b75a1fb20f5919c538ad14c73d/server/examples/go/hello-oauth2/manifest.json#L1-L17
 
 ## Bindings and Locations
-Locations are named elements in Mattermost UI. Bindings specify how App's calls
-should be displayed at, and invoked from these locations. 
-
-The Hello App creates a Channel Header button, and adds a `/helloworld send` command.
+The Hello OAuth2! creates 3 commands: `/helloworld configure|connect|send`.
 
 ```json
 {
 	"type": "ok",
 	"data": [
 		{
-			"location": "/channel_header",
-			"bindings": [
-				{
-					"location": "send-button",
-					"icon": "http://localhost:8080/static/icon.png",
-					"label":"send hello message",
-					"call": {
-						"path": "/send-modal"
-					}
-				}
-			]
-		},
-		{
 			"location": "/command",
 			"bindings": [
 				{
 					"icon": "http://localhost:8080/static/icon.png",
-					"description": "Hello World app",
-					"hint":        "[send]",
+					"description": "Hello remote (3rd party) OAuth2 App",
+					"hint": "[configure | connect | send]",
 					"bindings": [
+						{
+							"location": "configure",
+							"label": "configure",
+							"call": {
+								"path": "/configure"
+							}
+						},
+						{
+							"location": "connect",
+							"label": "connect",
+							"call": {
+								"path": "/connect"
+							}
+						},
 						{
 							"location": "send",
 							"label": "send",
@@ -107,6 +90,57 @@ The Hello App creates a Channel Header button, and adds a `/helloworld send` com
 ```
 
 ## Functions and Form
+
+### OAuth2 Call Handlers
+
+To handle the OAuth2 "connect" flow, the app provides 2 Calls: `/oauth2/connect` that returns the URL to redirect the user to, and `/oauth2/complete` which gets invoked once the flow is finished, and the `state` parameter is verified.
+
+```go
+	// Handle an OAuth2 connect URL request.
+	http.HandleFunc("/oauth2/connect", oauth2Connect)
+
+	// Handle a successful OAuth2 connection.
+	http.HandleFunc("/oauth2/complete", oauth2Complete)
+```
+
+
+
+#### configure
+
+Sets up the Google OAuth2 credentials. Submit will require an Admin token to
+make the changes.
+
+```json
+{
+	"type": "form",
+	"form": {
+		"title": "Configures Google OAuth2 App credentials",
+		"icon": "http://localhost:8080/static/icon.png",
+		"fields": [
+			{
+				"type": "text",
+				"name": "client_id",
+				"label": "client-id",
+				"is_required": true
+			},
+			{
+				"type": "text",
+				"name": "client_secret",
+				"label": "client-secret",
+				"is_required": true
+			}
+		],
+		"call": {
+			"path": "/configure",
+			"expand": {
+				"admin_access_token": "all"
+			}
+		}
+	}
+}
+```
+
+
 Functions handle user events and webhooks. The Hello World App exposes 2 functions:
 - `/send` that services the command and modal.
 - `/send-modal` that forces the modal to be displayed.
