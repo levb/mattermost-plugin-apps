@@ -78,7 +78,6 @@ func main() {
 func configure(w http.ResponseWriter, req *http.Request) {
 	creq := apps.CallRequest{}
 	json.NewDecoder(req.Body).Decode(&creq)
-
 	clientID, _ := creq.Values["client_id"].(string)
 	clientSecret, _ := creq.Values["client_secret"].(string)
 
@@ -87,6 +86,15 @@ func configure(w http.ResponseWriter, req *http.Request) {
 
 	json.NewEncoder(w).Encode(apps.CallResponse{
 		Markdown: "updated OAuth client credentials",
+	})
+}
+
+func connect(w http.ResponseWriter, req *http.Request) {
+	creq := apps.CallRequest{}
+	json.NewDecoder(req.Body).Decode(&creq)
+
+	json.NewEncoder(w).Encode(apps.CallResponse{
+		Markdown: md.Markdownf("[Connect](%s) to Google.", creq.Context.OAuth2.ConnectURL),
 	})
 }
 
@@ -104,24 +112,13 @@ func oauth2Config(creq *apps.CallRequest) *oauth2.Config {
 	}
 }
 
-func connect(w http.ResponseWriter, req *http.Request) {
-	creq := apps.CallRequest{}
-	json.NewDecoder(req.Body).Decode(&creq)
-
-	json.NewEncoder(w).Encode(apps.CallResponse{
-		Markdown: md.Markdownf("[Connect](%s) to Google.", creq.Context.OAuth2.ConnectURL),
-	})
-}
-
 func oauth2Connect(w http.ResponseWriter, req *http.Request) {
 	creq := apps.CallRequest{}
 	json.NewDecoder(req.Body).Decode(&creq)
-
-	asActingUser := mmclient.AsActingUser(creq.Context)
-
-	state, _ := asActingUser.CreateOAuth2State()
+	state, _ := creq.Values["state"].(string)
 
 	url := oauth2Config(&creq).AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+
 	json.NewEncoder(w).Encode(apps.CallResponse{
 		Type: apps.CallResponseTypeOK,
 		Data: url,
@@ -133,10 +130,11 @@ func oauth2Complete(w http.ResponseWriter, req *http.Request) {
 	json.NewDecoder(req.Body).Decode(&creq)
 	code, _ := creq.Values["code"].(string)
 
-	asActingUser := mmclient.AsActingUser(creq.Context)
-
 	token, _ := oauth2Config(&creq).Exchange(context.Background(), code)
+
+	asActingUser := mmclient.AsActingUser(creq.Context)
 	asActingUser.StoreOAuth2User(creq.Context.AppID, token)
+
 	json.NewEncoder(w).Encode(apps.CallResponse{})
 }
 
